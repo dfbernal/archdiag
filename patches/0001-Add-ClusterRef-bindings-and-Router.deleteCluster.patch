@@ -1,0 +1,81 @@
+From 815ba99e737da27fa99cc599f74bf6dcf250f004 Mon Sep 17 00:00:00 2001
+From: David Bernal <david.f.bernal@gmail.com>
+Date: Fri, 30 Oct 2026 00:47:06 -0400
+Subject: [PATCH] Add ClusterRef bindings and Router.deleteCluster
+
+Exposes libavoid's existing cluster support (viscluster.cpp is already
+compiled in) so JS callers can declare containers that connectors route
+around unless an endpoint is inside. Pairs with the already-exposed
+clusterCrossingPenalty routing parameter.
+
+---
+ embind/bindings.cpp   | 10 ++++++++++
+ typings/libavoid.d.ts | 10 ++++++++++
+ 2 files changed, 20 insertions(+)
+
+diff --git a/embind/bindings.cpp b/embind/bindings.cpp
+index 1215c56..a70cf2f 100644
+--- a/embind/bindings.cpp
++++ b/embind/bindings.cpp
+@@ -26,6 +26,7 @@ EMSCRIPTEN_BINDINGS(my_module) {
+     .function("moveJunction_point", select_overload<void(Avoid::JunctionRef*, const Avoid::Point&)>(&Avoid::Router::moveJunction), allow_raw_pointers())
+     .function("moveJunction_delta", select_overload<void(Avoid::JunctionRef*, double, double)>(&Avoid::Router::moveJunction), allow_raw_pointers())
+     .function("deleteJunction", &Avoid::Router::deleteJunction, allow_raw_pointers())
++    .function("deleteCluster", &Avoid::Router::deleteCluster, allow_raw_pointers())
+     .function("setRoutingParameter", &Avoid::Router::setRoutingParameter)
+     .function("setRoutingOption", &Avoid::Router::setRoutingOption);
+ 
+@@ -99,6 +100,15 @@ EMSCRIPTEN_BINDINGS(my_module) {
+     .function("position", &Avoid::ShapeRef::position)
+     .function("setNewPoly", &Avoid::ShapeRef::setNewPoly);
+ 
++    // Clusters: containers that connectors must route around unless one of their endpoints is inside.
++    // Pair with RoutingParameter.clusterCrossingPenalty (already exposed) to control crossings.
++    class_<Avoid::ClusterRef>("ClusterRef")
++    .constructor<Avoid::Router*, Avoid::Polygon&>()
++    .constructor<Avoid::Router*, Avoid::Polygon&, unsigned int>()
++    .function("id", &Avoid::ClusterRef::id)
++    .function("setNewPoly", &Avoid::ClusterRef::setNewPoly)
++    .function("rectangularPolygon", &Avoid::ClusterRef::rectangularPolygon);
++
+     class_<Avoid::JunctionRef, emscripten::base<Avoid::Obstacle>>("JunctionRef")
+     .constructor<Avoid::Router*, Avoid::Point, unsigned long>()
+     .function("position", &Avoid::JunctionRef::position)
+diff --git a/typings/libavoid.d.ts b/typings/libavoid.d.ts
+index 1964579..b85a19f 100644
+--- a/typings/libavoid.d.ts
++++ b/typings/libavoid.d.ts
+@@ -39,6 +39,7 @@ declare interface Router {
+   moveShape_delta(shape: ShapeRef, xDiff: number, yDiff: number);
+   deleteShape(shape: ShapeRef);
+   deleteJunction(junction: JunctionRef): void;
++  deleteCluster(cluster: ClusterRef): void;
+   setRoutingParameter(parameter: RoutingParameter, value: number): void;
+   setRoutingOption(option: RoutingOption, value: boolean): void;
+ 
+@@ -129,6 +130,14 @@ declare interface Obstacle {
+   setNewPoly(polygon: Polygon): void;
+ }
+ 
++/** A container (e.g. a zone or group) that connectors route around unless an endpoint is inside it. */
++declare interface ClusterRef {
++  new (router: Router, poly: Polygon, id?: number): ClusterRef;
++  id(): number;
++  setNewPoly(poly: Polygon): void;
++  rectangularPolygon(): Polygon;
++}
++
+ declare interface ShapeRef extends Obstacle {
+   new (router: Router, shapePoly: Polygon): ShapeRef;
+ }
+@@ -147,6 +156,7 @@ export interface Avoid {
+   Router: Router;
+   Obstacle: Obstacle;
+   ShapeRef: ShapeRef;
++  ClusterRef: ClusterRef;
+   JunctionRef: JunctionRef;
+   ShapeConnectionPin: ShapeConnectionPin;
+ 
+-- 
+2.43.0
+

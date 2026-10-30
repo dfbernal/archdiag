@@ -1,0 +1,40 @@
+{
+  "name": "archdiag",
+  "version": "1.0.0",
+  "description": "Architecture diagrams from YAML: clean, hand-placed-looking SVG/PNG and Slack/terminal text",
+  "scripts": {
+    "example": "node src/cli.js examples/checkout.yaml out/checkout --fit doc --type 1.3"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "elkjs": "^0.12.1",
+    "js-yaml": "^5.5.0",
+    "opentype.js": "^2.0.0"
+  },
+  "bin": {
+    "archdiag": "src/cli.js"
+  },
+  "files": [
+    "src/",
+    "icons/",
+    "fonts/",
+    "vendor/",
+    "examples/",
+    "README.md",
+    "CONTEXT.md",
+    "patches/"
+  ],
+  "peerDependencies": {
+    "playwright": ">=1.40"
+  },
+  "peerDependenciesMeta": {
+    "playwright": {
+      "optional": true
+    }
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

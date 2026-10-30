@@ -1,0 +1,37 @@
+title: Checkout Platform
+subtitle: Request path, async fulfilment and data tier
+direction: right
+
+groups:
+  edge:     { label: Edge, color: orange }
+  k8s:      { label: Kubernetes Cluster, color: blue, icon: kubernetes }
+  async:    { label: Async Fulfilment, color: amber, parent: k8s }
+  data:     { label: Data Tier, color: green }
+
+nodes:
+  users:    { label: Shoppers, kind: actor }
+  cdn:      { label: Cloudflare, sub: CDN + WAF, group: edge, icon: cloudflare }
+  gw:       { label: API Gateway, sub: NGINX, group: k8s, icon: nginx }
+  auth:     { label: Auth, sub: JWT + sessions, group: k8s }
+  orders:   { label: Orders, sub: order lifecycle, group: k8s }
+  payments: { label: Payments, sub: PCI scope, group: k8s }
+  kafka:    { label: Kafka, sub: orders topic, group: async, kind: queue, icon: kafka }
+  workers:  { label: Workers, sub: fulfilment, group: async }
+  redis:    { label: Redis, sub: sessions, group: data, kind: datastore, icon: redis }
+  pg:       { label: Postgres, sub: primary DB, group: data, kind: datastore, icon: postgresql }
+  blob:     { label: Object Store, sub: invoices, group: data, kind: datastore }
+  stripe:   { label: Stripe, sub: payments API, kind: external, icon: stripe }
+
+edges:
+  - users -> cdn: { label: HTTPS }
+  - cdn -> gw
+  - gw -> auth: { label: verify JWT }
+  - gw -> orders: { label: POST /orders }
+  - orders -> payments: { label: charge }
+  - payments -> stripe: { label: PaymentIntent }
+  - orders -> kafka: { label: order.created, style: async }
+  - kafka -> workers: { label: consume, style: async }
+  - auth -> redis: { label: sessions, style: data }
+  - orders -> pg: { label: write, style: data }
+  - workers -> pg: { label: update status, style: data }
+  - workers -> blob: { label: invoices, style: data }

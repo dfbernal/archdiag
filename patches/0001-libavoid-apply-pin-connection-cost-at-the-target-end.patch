@@ -1,0 +1,48 @@
+From 261238e5743b07a13831400f9c5f1b23e4ad1e0b Mon Sep 17 00:00:00 2001
+From: David Bernal <david.f.bernal@gmail.com>
+Date: Fri, 30 Oct 2026 01:52:06 -0400
+Subject: [PATCH] libavoid: apply pin connection cost at the target end of a
+ connector
+
+AStarPathPrivate::search() gave the final step onto the target's dummy
+pin-helper vertex no cost (node.g = bestNode->g). The pin's connection
+cost and portDirectionPenalty are stored on exactly that edge (see
+ConnEnd::assignPinVisibilityTo), so ShapeConnectionPin::setConnectionCost
+only had an effect at the source end of a connector.
+
+Add the edge's cost beyond its geometric length on that step. A* only
+terminates when the target is popped, so the cheapest pin now wins, and
+the heuristic stays admissible.
+
+Repro: two pins of one class on the target shape, cost 0 on the top
+side and 1600 on the left; the router picked the left pin. Reversing
+the connector (pins on the source) picked the top pin.
+
+---
+ cola/libavoid/makepath.cpp | 10 ++++++++--
+ 1 file changed, 8 insertions(+), 2 deletions(-)
+
+diff --git a/cola/libavoid/makepath.cpp b/cola/libavoid/makepath.cpp
+index 713498ec..8050a0b3 100644
+--- a/cola/libavoid/makepath.cpp
++++ b/cola/libavoid/makepath.cpp
+@@ -1443,8 +1443,14 @@ void AStarPathPrivate::search(ConnRef *lineRef, VertInf *src, VertInf *tar, Vert
+                 if (node.inf->id.isDummyPinHelper())
+                 {
+                     // This is connecting to a connection pin helper vertex.
+-                    // There should be no additional cost for this step.
+-                    node.g = bestNode->g;
++                    // There is no extra path length for this step, but the
++                    // pin's connection cost (and portDirectionPenalty) live
++                    // on this edge, so add them.  Otherwise pin costs only
++                    // apply at the source end of a connector.
++                    double pinDist = (isOrthogonal) ?
++                            manhattanDist(bestNodeInf->point, node.inf->point) :
++                            euclideanDist(bestNodeInf->point, node.inf->point);
++                    node.g = bestNode->g + std::max(0.0, edgeDist - pinDist);
+                 }
+                 else
+                 {
+-- 
+2.43.0
+
