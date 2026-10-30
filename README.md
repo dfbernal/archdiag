@@ -7,6 +7,152 @@ diagram.yaml ──► layout (elkjs, compound) ──► routing (libavoid) ─
                                                                              └─► Unicode / ASCII text
 ```
 
+## Examples
+
+One source file, [`examples/checkout.yaml`](examples/checkout.yaml), rendered three ways with no hand tweaks.
+All outputs are in [`examples/output/`](examples/output/).
+
+### Doc / README (`--fit doc --type 1.3`)
+
+![Checkout Platform, doc layout](examples/output/checkout-doc.png)
+
+### Slide, 16:9 (`--fit slide --type 1.6`)
+
+![Checkout Platform, slide layout](examples/output/checkout-slide.png)
+
+### Slack / terminal text (`--ascii unicode --cols 100`)
+
+Paste inside a triple-backtick block. A plain-ASCII version (`--ascii ascii`) is in
+[`checkout-ascii.txt`](examples/output/checkout-ascii.txt).
+
+<details>
+<summary>Show the text output (78 columns × 112 rows)</summary>
+
+```
+Checkout Platform
+
+              ╭──────────╮
+              │ Shoppers │
+              ╰──────────╯
+                    │
+                    │
+                    │
+                    │
+                    │
+                    │
+                    │
+                    │ HTTPS
+                    │
+                    │
+                    │
+                    │
+        ┌┈ Edge ┈┈┈┈│┈┈┈┈┈┈┈┈┈┈┈┐
+        ┊           ▼           ┊
+        ┊  ┌─────────────────┐  ┊
+        ┊  │   Cloudflare    │  ┊
+        ┊  │    CDN + WAF    │  ┊
+        ┊  └─────────────────┘  ┊
+        └┈┈┈┈┈┈┈┈┈┈┈┈┈┈│┈┈┈┈┈┈┈┈┘
+                       │
+                       │
+                       │
+                       │
+                       │
+                       │
+┌┈ Kubernetes Cluster ┈│┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┐
+┊                      ▼                                                     ┊
+┊          ┌─────────────────┐                                               ┊
+┊          │   API Gateway   │                                               ┊
+┊          │      NGINX      │                                               ┊
+┊          └─────────────────┘                                               ┊
+┊              │              │                                              ┊
+┊              │              │                                              ┊
+┊              │              │                                              ┊
+┊              │              │                                              ┊
+┊              │              │                                              ┊
+┊              │ verify JWT   │ POST /orders                                 ┊
+┊              │              │                                              ┊
+┊              │              │                                              ┊
+┊              │              │                                              ┊
+┊              ▼              ▼                                              ┊
+┊       ┌─────────────────┐  ┌─────────────────┐                             ┊
+┊       │      Auth       │  │     Orders      │                             ┊
+┊       │ JWT + sessions  │  │ order lifecycle │                             ┊
+┊       └─────────────────┘  └─────────────────┘                             ┊
+┊            │                    │    │     ┆                               ┊
+┊            │                    │    │     ┆                               ┊
+┊            │                    │    │     ┆                               ┊
+┊            │                    │    │     ┆                               ┊
+┊            │             charge │    │     └┄┄┄ order.created ┄┄┄┄┐        ┊
+┊            │                    │    └───────┐                    ┆        ┊
+┊            │                    │            │                    ┆        ┊
+┊            │                    │            │                    ┆        ┊
+┊            │                    ▼            │                    ┆        ┊
+┊            │            ┌─────────────────┐  │┌┈ Async Fulfilment ┆┈┈┈┈┈┐  ┊
+┊            │            │    Payments     │  │┊                   ▼     ┊  ┊
+┊            │            │    PCI scope    │  │┊    ┌─────────────────┐  ┊  ┊
+┊            │            └─────────────────┘  │┊    │      Kafka      │  ┊  ┊
+┊            │                 │               │┊    │  orders topic   │  ┊  ┊
+┊            │                 │               │┊    └─────────────────┘  ┊  ┊
+┊            │                 │               │┊             ┆           ┊  ┊
+┊            │                 │               │┊             ┆           ┊  ┊
+┊            │                 │               │┊             ┆           ┊  ┊
+┊            │                 │               │┊             ┆           ┊  ┊
+┊            │                 │               │┊             ┆           ┊  ┊
+┊            │                 │               │┊             ┆ consume   ┊  ┊
+┊            │                 │               │┊             ┆           ┊  ┊
+┊            │                 │               │┊             ┆           ┊  ┊
+┊            │                 │               │┊             ┆           ┊  ┊
+┊            │                 │               │┊             ▼           ┊  ┊
+┊            │                 │               │┊    ┌─────────────────┐  ┊  ┊
+┊            │                 │               │┊    │     Workers     │  ┊  ┊
+┊            │                 │               │┊    │   fulfilment    │  ┊  ┊
+┊            │                 │ PaymentIntent │┊    └─────────────────┘  ┊  ┊
+┊            │                 │               │└┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈│┈│┈┈┈┈┈┈┘  ┊
+└┈┈┈┈┈┈┈┈┈┈┈┈│┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈│┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈│┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈┈│┈│┈┈┈┈┈┈┈┈┈┘
+             │                 │               │                 │ │
+             │                 │               │                 │ │
+             │                 │               │   update status │ │
+             │                 │               │                 │ │
+             │                 │               │                 │ │
+             │                 │               │                 │ │
+             │                 │               └─── write ───┐┌──┘ │
+             │                 │                             ││    │
+             │                 │                             ││    │
+             │                 │                             ││    │
+             │                 │                             ││    │
+             │                 ▼                             ││    │
+             │  ┌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┐      ┌┈ Data Tier ┈┈┈┈┈┈┈││    │
+             │  ╎     Stripe      ╎      ┊                   ││    │ invoices
+             │  ╎  payments API   ╎      ┊  ╭──────────────╮ ││    │
+             │  └╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┘      ┊  │    Redis     │ ││    │
+             └───────── sessions ──────────▶│   sessions   │ ││    │
+                                         ┊  ╰──────────────╯ ││    │
+                                         ┊                   ││    │
+                                         ┊                   ││    │
+                                         ┊  ╭──────────────╮ ││    │
+                                         ┊  │   Postgres   │◀┘│    │
+                                         ┊  │  primary DB  │◀─┘    │
+                                         ┊  ╰──────────────╯  ┊    │
+                                         ┊                    ┊    │
+                                         ┊                    ┊    │
+                                         ┊  ╭──────────────╮  ┊    │
+                                         ┊  │ Object Store │◀──────┘
+                                         ┊  │   invoices   │  ┊
+                                         └┈┈╰──────────────╯┈┈┘
+```
+
+</details>
+
+To regenerate all of them (`npm run examples` does the same):
+
+```bash
+node src/cli.js examples/checkout.yaml examples/output/checkout-doc   --fit doc   --type 1.3 --png --png-scale 1
+node src/cli.js examples/checkout.yaml examples/output/checkout-slide --fit slide --type 1.6 --png --png-scale 1
+node src/cli.js examples/checkout.yaml examples/output/checkout-text  --ascii unicode --cols 100
+node src/cli.js examples/checkout.yaml examples/output/checkout-ascii --ascii ascii   --cols 100
+```
+
 ## Why it looks cleaner than D2 / Mermaid
 
 - **Compound layout with lifted edges.** Each zone is laid out on its own with ELK in its own direction;
