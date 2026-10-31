@@ -52,6 +52,11 @@ jobs:
             *-*) tag=$(echo "$VERSION" | sed -E 's/^[^-]+-([A-Za-z]+).*/\1/') ;;   # 0.1.0-beta.1 -> beta
             *)   tag=latest ;;
           esac
+          # Already on npm (e.g. the first version, published by hand): skip, but still attach the tarball below.
+          if [ -n "$(npm view "archdiag@$VERSION" version 2>/dev/null)" ]; then
+            echo "archdiag@$VERSION is already on npm; not publishing it again."
+            exit 0
+          fi
           echo "Publishing archdiag@$VERSION with dist-tag '$tag'"
           npm publish --tag "$tag" --access public
 

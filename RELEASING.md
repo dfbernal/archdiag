@@ -40,6 +40,8 @@ npm configures trusted publishing per package, so the package has to exist befor
    npm expects the first publish through a new trusted publisher within 2 days of setting it up.
 3. **Optional, recommended:** in the package settings, require two-factor authentication and disallow tokens for
    publishing, so only the workflow can publish.
+4. **Create the GitHub release for that first version** (`v0.1.0-beta.0`, as a pre-release). The workflow sees the
+   version is already on npm, skips publishing, and attaches the tarball to the release.
 
 If a publish fails with `E404 Not Found`, the trusted publisher settings don't exactly match the repository and
 workflow file name.
