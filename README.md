@@ -307,6 +307,24 @@ edges:
 Write edges the way the data actually moves. The layout follows `source -> target`; `arrow:` and the
 `<->` / `--` forms only change how the line is drawn.
 
+### Where lines attach
+
+By default the router picks the side of a box each line uses and the order of lines along it. You can pin either
+end of an edge to a side, and order the lines that share it:
+
+```yaml
+edges:
+  - input -> flatten:  { label: consumes events, target-side: left, target-order: 1 }
+  - flatten -> deltas: { label: signed deltas,   source-side: left, source-order: 2 }
+```
+
+- `source-side` / `target-side`: `left`, `right`, `top` or `bottom`. The line must attach there.
+- `source-order` / `target-order`: `1`, `2`, ... among the lines on that side that have an order. `1` is the top-most
+  line on a left or right side, the left-most on a top or bottom side. Lines without an order fit in around them.
+- "source" is always where the data comes from (also in `a <- b`), and "target" where it goes.
+- These are requirements, not hints: if keeping them costs a crossing, it costs a crossing. `--check` reports any
+  line that ends up on another side (`side`) or out of order (`order`).
+
 ### Lanes: fixing where zones go
 
 `lane: N` on a zone (or a box) pins it to the Nth band along its container's flow: with the diagram
