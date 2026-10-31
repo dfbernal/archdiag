@@ -1,4 +1,6 @@
-# Runs the layout checks on every pull request and push to main.
+# Runs the layout checks on every pull request and push to main, and on pull requests says what merging will
+# release (see publish.yml): "Merging will publish archdiag@x to npm ..." or "... already on npm, so merging
+# won't publish". Fails if the version would be rejected at release time (invalid, or lower than what's on npm).
 name: CI
 
 on:
@@ -20,3 +22,20 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run check
+
+  release-preview:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - name: What merging this will release
+        run: |
+          plan=$(node .github/scripts/release-plan.mjs)
+          action=$(echo "$plan" | sed -n 's/^action=//p')
+          message=$(echo "$plan" | sed -n 's/^message=//p')
+          echo "### $message" >> "$GITHUB_STEP_SUMMARY"
+          if [ "$action" = "error" ]; then echo "::error::$message"; exit 1; fi
+          echo "::notice title=Release preview::$message"

@@ -1,24 +1,29 @@
-# Publishes to npm when a GitHub release is published.
+# Releases on every merge to main. package.json's version is the single source of truth:
+#   - not on npm yet  -> run the checks, publish it to npm, create tag v<version> and a GitHub release
+#                        (pre-release for versions like 0.1.0-beta.1) with the package tarball attached
+#   - already on npm  -> nothing to publish; if its GitHub release is missing, create it (with the tarball)
+#   - lower than what's on npm, or not valid semver -> fail
+# Re-running is safe: each step is skipped once it's done.
 #
-# Uses npm trusted publishing (OIDC): no npm token is stored in GitHub. One-time setup on npmjs.com:
-# package `archdiag` -> Settings -> Trusted publishing -> GitHub Actions, with
-#   user: dfbernal, repository: archdiag, workflow filename: publish.yml
-# (the package must exist first, so the very first version is published by hand; see RELEASING.md).
-#
-# Release tag must be v<version from package.json>, e.g. v0.1.0-beta.1.
-# Prereleases (0.1.0-beta.1) go to the npm dist-tag named after them ("beta"); others go to "latest".
-name: Publish to npm
+# Publishing uses npm trusted publishing (OIDC): no npm token is stored in GitHub. Configured on npmjs.com for
+# package `archdiag` with user `dfbernal`, repository `archdiag`, workflow filename `publish.yml` (keep this name).
+name: Release
 
 on:
-  release:
-    types: [published]
+  push:
+    branches: [main]
+  workflow_dispatch:     # re-run by hand from the Actions tab if needed
 
 permissions:
-  contents: write   # attach the package tarball to the GitHub release
+  contents: write   # create the tag and the GitHub release
   id-token: write   # npm trusted publishing
 
+concurrency:
+  group: release
+  cancel-in-progress: false   # never interrupt a publish
+
 jobs:
-  publish:
+  release:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -32,37 +37,50 @@ jobs:
       - name: Use npm 11.5.1 or later (needed for trusted publishing)
         run: npm install -g npm@^11.5.1 && npm --version
 
-      - name: Check the tag matches package.json
-        run: |
-          version=$(node -p "require('./package.json').version")
-          if [ "v$version" != "$GITHUB_REF_NAME" ]; then
-            echo "::error::Release tag $GITHUB_REF_NAME does not match package.json version $version (expected v$version)"
-            exit 1
-          fi
-          echo "VERSION=$version" >> "$GITHUB_ENV"
-
-      - run: npm ci
-
-      - name: Quality gate (every example must pass the layout checks)
-        run: npm run check
-
-      - name: Publish
-        run: |
-          case "$VERSION" in
-            *-*) tag=$(echo "$VERSION" | sed -E 's/^[^-]+-([A-Za-z]+).*/\1/') ;;   # 0.1.0-beta.1 -> beta
-            *)   tag=latest ;;
-          esac
-          # Already on npm (e.g. the first version, published by hand): skip, but still attach the tarball below.
-          if [ -n "$(npm view "archdiag@$VERSION" version 2>/dev/null)" ]; then
-            echo "archdiag@$VERSION is already on npm; not publishing it again."
-            exit 0
-          fi
-          echo "Publishing archdiag@$VERSION with dist-tag '$tag'"
-          npm publish --tag "$tag" --access public
-
-      - name: Attach the package tarball to the release
+      - name: Work out what to release
+        id: plan
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          node .github/scripts/release-plan.mjs --github-output
+          tag="v$(node -p "require('./package.json').version")"
+          if gh release view "$tag" > /dev/null 2>&1; then released=true; else released=false; fi
+          echo "released=$released" >> "$GITHUB_OUTPUT"
+
+      - name: Stop on a bad version
+        if: steps.plan.outputs.action == 'error'
+        run: |
+          echo "::error::${{ steps.plan.outputs.message }}"
+          exit 1
+
+      - name: Summary
+        run: |
+          {
+            echo "### ${{ steps.plan.outputs.message }}"
+            echo "GitHub release ${{ steps.plan.outputs.tag }}: ${{ steps.plan.outputs.released == 'true' && 'exists' || 'will be created' }}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Install
+        if: steps.plan.outputs.action == 'publish' || steps.plan.outputs.released == 'false'
+        run: npm ci
+
+      - name: Quality gate (every example must pass the layout checks)
+        if: steps.plan.outputs.action == 'publish'
+        run: npm run check
+
+      - name: Publish to npm
+        if: steps.plan.outputs.action == 'publish'
+        run: npm publish --tag "${{ steps.plan.outputs.dist_tag }}" --access public
+
+      - name: Create the GitHub release with the package tarball
+        if: steps.plan.outputs.released == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.plan.outputs.version }}
+          TAG: ${{ steps.plan.outputs.tag }}
+          PRERELEASE: ${{ steps.plan.outputs.prerelease }}
+        run: |
           npm pack
-          gh release upload "$GITHUB_REF_NAME" "archdiag-$VERSION.tgz" --clobber
+          flags=(--title "archdiag $VERSION" --generate-notes --target "$GITHUB_SHA")
+          if [ "$PRERELEASE" = "true" ]; then flags+=(--prerelease); else flags+=(--latest); fi
+          gh release create "$TAG" "archdiag-$VERSION.tgz" "${flags[@]}"
