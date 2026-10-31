@@ -17,7 +17,17 @@ function parseEdges(list) {
     const [source, target] = op === '<-' ? [b, a] : [a, b];
     const arrow = opts.arrow || { '<->': 'both', '--': 'none' }[op] || 'forward';
     if (!['forward', 'back', 'both', 'none'].includes(arrow)) throw new Error(`Bad arrow '${arrow}' on ${spec}`);
-    return { id: `e${i}`, source, target, label: opts.label, style: opts.style || 'request', arrow };
+    // Where each end attaches: source-side / target-side (left | right | top | bottom) pin it to one side of
+    // its box; source-order / target-order (1, 2, ...) order the lines on that side (1 = top-most on a left or
+    // right side, left-most on a top or bottom side). "source" is always where the data comes from, also in `a <- b`.
+    const get = (k) => opts[k] ?? opts[k.replace(/-(\w)/g, (_, c) => c.toUpperCase())];
+    const SIDES = { left: 'L', right: 'R', top: 'T', bottom: 'B' };
+    const side = (k) => { const v = get(k); if (v == null) return undefined;
+      if (!SIDES[v]) throw new Error(`Bad ${k} '${v}' on ${spec} (use left, right, top or bottom)`); return SIDES[v]; };
+    const order = (k) => { const v = get(k); if (v == null) return undefined;
+      if (!Number.isInteger(v) || v < 1) throw new Error(`Bad ${k} '${v}' on ${spec} (use 1, 2, 3, ...)`); return v; };
+    return { id: `e${i}`, source, target, label: opts.label, style: opts.style || 'request', arrow,
+      sourceSide: side('source-side'), targetSide: side('target-side'), sourceOrder: order('source-order'), targetOrder: order('target-order') };
   });
 }
 

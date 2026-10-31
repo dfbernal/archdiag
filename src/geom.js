@@ -56,6 +56,10 @@ function checkEdge(L, theme, e, pts = e.points) {
     if (segs.some(([a, b]) => segHitsRect(a, b, inflate(n, m)))) out.push({ kind: 'node', id: n.id });
   }
   // Its own two boxes: only the segment that attaches may touch; nothing may run along their edges.
+  // Requested attachment sides (source-side / target-side).
+  for (const [id, want, p] of [[e.source, e.sourceSide, pts[0]], [e.target, e.targetSide, pts[pts.length - 1]]]) {
+    if (want && L.nodes[id] && sideOf(L.nodes[id], p) !== want) out.push({ kind: 'side', id });
+  }
   const mh = 14 * s;   // a line closer than this to its own box's edge reads as hugging it
   for (const [id, attached] of [[e.source, 0], [e.target, segs.length - 1]]) {
     const n = L.nodes[id]; if (!n) continue;
@@ -104,6 +108,38 @@ function fitCanvas(L) {
   L.width = x1 - x0; L.height = y1 - y0;
   return L;
 }
-function checkAll(L, theme) { return L.edges.flatMap((e) => checkEdge(L, theme, e).map((v) => ({ ...v, edge: `${e.source}->${e.target}` }))); }
+// Which side of box n the point p lies on ('L' | 'R' | 'T' | 'B'), or null if it isn't on the border.
+function sideOf(n, p) {
+  const near = (a, b) => Math.abs(a - b) < 1;
+  if (near(p.x, n.x) && p.y >= n.y - 1 && p.y <= n.y + n.h + 1) return 'L';
+  if (near(p.x, n.x + n.w) && p.y >= n.y - 1 && p.y <= n.y + n.h + 1) return 'R';
+  if (near(p.y, n.y) && p.x >= n.x - 1 && p.x <= n.x + n.w + 1) return 'T';
+  if (near(p.y, n.y + n.h) && p.x >= n.x - 1 && p.x <= n.x + n.w + 1) return 'B';
+  return null;
+}
+// Requested attachment orders (source-order / target-order): on each side of each box, ends with an order must
+// appear in that order (1 = top-most on L/R, left-most on T/B).
+function checkOrders(L) {
+  const out = [];
+  for (const n of Object.values(L.nodes)) {
+    const bySide = {};
+    for (const e of L.edges) {
+      if (!e.points || e.points.length < 2) continue;
+      for (const [end, id, ord, p] of [['source', e.source, e.sourceOrder, e.points[0]], ['target', e.target, e.targetOrder, e.points[e.points.length - 1]]]) {
+        if (id !== n.id || ord == null) continue;
+        const side = sideOf(n, p); if (!side) continue;
+        (bySide[side] = bySide[side] || []).push({ e, ord, at: side === 'L' || side === 'R' ? p.y : p.x });
+      }
+    }
+    for (const list of Object.values(bySide)) {
+      list.sort((a, b) => a.at - b.at);
+      list.forEach((d, k) => { if (k && list[k - 1].ord > d.ord) out.push({ kind: 'order', id: n.id, edge: `${d.e.source}->${d.e.target}` }); });
+    }
+  }
+  return out;
+}
+function checkAll(L, theme) {
+  return [...L.edges.flatMap((e) => checkEdge(L, theme, e).map((v) => ({ ...v, edge: `${e.source}->${e.target}` }))), ...checkOrders(L)];
+}
 
-module.exports = { titleRow, titleRect, titleStrip, extent, fitCanvas, checkEdge, checkAll, segHitsRect, inflate, ancestorsOf };
+module.exports = { titleRow, titleRect, titleStrip, extent, fitCanvas, checkEdge, checkAll, checkOrders, sideOf, segHitsRect, inflate, ancestorsOf };

@@ -1,0 +1,27 @@
+title: Attachment side and order
+subtitle: source-side / target-side and source-order / target-order on edges
+
+render: { direction: right }
+
+groups:
+  topics: { label: Kafka topics, color: violet, lane: 1, direction: down }
+  app:    { label: Stream app, color: slate, lane: 2, direction: down }
+  stores: { label: State stores, color: amber, lane: 3 }
+
+nodes:
+  input:   { label: Input Topic, sub: raw-events, group: topics, kind: queue, icon: kafka }
+  deltas:  { label: Delta Topic, sub: event-deltas, group: topics, kind: queue, icon: kafka }
+  output:  { label: Output Topic, sub: aggregates, group: topics, kind: queue, icon: kafka }
+  flatten: { label: Flatten Task, sub: emit event-deltas, group: app }
+  agg:     { label: Aggregate Task, sub: merge deltas, group: app }
+  store:   { label: Membership Store, sub: memberships, group: stores, kind: datastore }
+
+# Regression fixture for attachment sides and orders: `npm run check` fails if any constraint isn't met.
+edges:
+  # Input first (top), then the delta output, both on Flatten Task's left side.
+  - input -> flatten:   { label: consumes events, style: async, target-side: left, target-order: 1 }
+  - flatten -> deltas:  { label: signed deltas, style: async, source-side: left, source-order: 2 }
+  - flatten <-> store:  { label: read/write, style: data }
+  - deltas -> agg:      { label: consumes deltas, style: async }
+  # An unusual side, to prove the side is enforced rather than preferred.
+  - agg -> output:      { label: aggregates, style: async, source-side: bottom }

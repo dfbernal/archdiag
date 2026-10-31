@@ -19,9 +19,32 @@ const FWD = { RIGHT: 'R', LEFT: 'L', DOWN: 'B', UP: 'T' };
 const OPP = { R: 'L', L: 'R', T: 'B', B: 'T' };
 const pinClass = (flow, role) => 1 + Object.keys(FWD).indexOf(flow) * 2 + (role === 'in' ? 1 : 0);
 
-function addNode(Av, r, n, withPins, theme) {
+// An edge end with source-side / target-side gets a pin class of its own, with pins on that side only.
+const SIDE_DIR = { T: UP, B: DOWN, L: LEFT, R: RIGHT };
+const endClass = (e, i, end) => {
+  const side = end === 'source' ? e.sourceSide : e.targetSide;
+  return side ? 100 + 2 * i + (end === 'source' ? 0 : 1) : pinClass(e.flow || 'RIGHT', end === 'source' ? 'out' : 'in');
+};
+// The constrained ends attached to node n, as [{ cls, side }].
+const fixedEnds = (L, n, only) => L.edges.flatMap((e, i) => (only && !only.includes(e) ? [] : [
+  ...(e.source === n.id && e.sourceSide ? [{ cls: endClass(e, i, 'source'), side: e.sourceSide }] : []),
+  ...(e.target === n.id && e.targetSide ? [{ cls: endClass(e, i, 'target'), side: e.targetSide }] : []),
+]));
+
+function addNode(Av, r, n, withPins, theme, fixed = []) {
   const sh = new Av.ShapeRef(r, new Av.Rectangle(new Av.Point(n.x, n.y), new Av.Point(n.x + n.w, n.y + n.h)));
   if (!withPins) return sh;
+  // Pins for constrained ends: only on the requested side, offset by a sub-pixel amount per class (libavoid
+  // merges coincident pins of different classes).
+  fixed.forEach(({ cls, side }, k) => {
+    for (const f of [0.5, 0.3, 0.7, 0.18, 0.82]) {
+      const along = f + (9 + k) * (0.6 / Math.max(n.w, n.h));
+      const [x, y] = { T: [along, 0], B: [along, 1], L: [0, along], R: [1, along] }[side];
+      const pin = new Av.ShapeConnectionPin(sh, cls, x, y, true, 0, SIDE_DIR[side]);
+      pin.setExclusive(true);
+      pin.setConnectionCost(f === 0.5 ? 0 : 6);
+    }
+  });
   // Pins on every side, in separate classes per (flow direction, role), so a connector prefers
   // to leave a box on the side facing the flow and enter on the opposite side.
   const fr = [0.5, 0.3, 0.7, 0.18, 0.82];
@@ -107,11 +130,12 @@ async function routeOne(L, theme, e, opts = {}) {
   const r = new Av.Router(Av.RouterFlag.OrthogonalRouting.value);
   configure(Av, r, theme, opts);
   const shapes = {};
-  for (const n of Object.values(L.nodes)) shapes[n.id] = addNode(Av, r, n, n.id === e.source || n.id === e.target, theme);
+  for (const n of Object.values(L.nodes)) shapes[n.id] = addNode(Av, r, n, n.id === e.source || n.id === e.target, theme, fixedEnds(L, n, [e]));
   const mine = new Set([...ancestorsOf(L, e.source), ...ancestorsOf(L, e.target)]);
   addZones(Av, r, L, opts, mine);
   for (const g of Object.values(L.groups)) titleObstacle(Av, r, g, theme, bufferOf(theme, opts));
-  const c = new Av.ConnRef(r, new Av.ConnEnd(shapes[e.source], pinClass(e.flow || 'RIGHT', 'out')), new Av.ConnEnd(shapes[e.target], pinClass(e.flow || 'RIGHT', 'in')));
+  const i = L.edges.indexOf(e);
+  const c = new Av.ConnRef(r, new Av.ConnEnd(shapes[e.source], endClass(e, i, 'source')), new Av.ConnEnd(shapes[e.target], endClass(e, i, 'target')));
   r.processTransaction();
   const pts = readRoute(c);
   r.delete(); // frees its shapes, connectors and visibility graph (wasm heap is capped at 2 GB)
@@ -125,14 +149,14 @@ async function routeEdges(L, theme, opts = {}) {
   configure(Av, r, theme, opts);   // fewer bends, avoid crossings, separate lines (no shared trunks)
 
   const shapes = {};
-  for (const n of Object.values(L.nodes)) shapes[n.id] = addNode(Av, r, n, true, theme);
+  for (const n of Object.values(L.nodes)) shapes[n.id] = addNode(Av, r, n, true, theme, fixedEnds(L, n));
   // Zones go around unless the connector has an endpoint inside (see addZones).
   addZones(Av, r, L, opts);
   // Zone titles are hard obstacles; lines enter a zone beside its title.
   for (const g of Object.values(L.groups)) titleObstacle(Av, r, g, theme, bufferOf(theme, opts));
   const conns = [];
-  for (const e of L.edges) {
-    const c = new Av.ConnRef(r, new Av.ConnEnd(shapes[e.source], pinClass(e.flow || 'RIGHT', 'out')), new Av.ConnEnd(shapes[e.target], pinClass(e.flow || 'RIGHT', 'in')));
+  for (const [i, e] of L.edges.entries()) {
+    const c = new Av.ConnRef(r, new Av.ConnEnd(shapes[e.source], endClass(e, i, 'source')), new Av.ConnEnd(shapes[e.target], endClass(e, i, 'target')));
     c.setHateCrossings(true);
     conns.push([e, c]);
   }
@@ -233,8 +257,10 @@ function straighten(L, theme) {
   const blocks = [...nodes, ...Object.values(L.groups).map((g) => ({ id: '#title:' + g.id, ...titleStrip(g, theme) }))];
   const hits = (x1, y1, x2, y2, skip) => blocks.some((n) => !skip.includes(n.id) &&
     Math.min(x1, x2) < n.x + n.w + buf && Math.max(x1, x2) > n.x - buf && Math.min(y1, y2) < n.y + n.h + buf && Math.max(y1, y2) > n.y - buf);
+  // A straight line must still attach on any requested sides; an ordered end has to stay movable along its side.
+  const sidesOk = (e, a, b) => (!e.sourceSide || e.sourceSide === a) && (!e.targetSide || e.targetSide === b);
   for (const e of L.edges) {
-    if (e.points.length <= 2) continue;
+    if (e.points.length <= 2 || e.sourceOrder || e.targetOrder) continue;
     const s = L.nodes[e.source], t = L.nodes[e.target];
     const skip = [s.id, t.id];
     const lo = Math.max(s.y, t.y) + m, hi = Math.min(s.y + s.h, t.y + t.h) - m;
@@ -243,11 +269,11 @@ function straighten(L, theme) {
     if (lo <= hi && (s.x + s.w < t.x || t.x + t.w < s.x)) {
       const prefer = Math.min(Math.max(s.y + s.h / 2, lo), hi), y = Math.abs((t.y + t.h / 2) - prefer) < Math.abs((s.y + s.h / 2) - prefer) ? prefer : prefer;
       const fwd = s.x + s.w < t.x, x1 = fwd ? s.x + s.w : s.x, x2 = fwd ? t.x : t.x + t.w;
-      if (!hits(x1, y, x2, y, skip)) pts = [{ x: x1, y }, { x: x2, y }];
+      if (!hits(x1, y, x2, y, skip) && sidesOk(e, fwd ? 'R' : 'L', fwd ? 'L' : 'R')) pts = [{ x: x1, y }, { x: x2, y }];
     } else if (loX <= hiX && (s.y + s.h < t.y || t.y + t.h < s.y)) {
       const x = Math.min(Math.max(s.x + s.w / 2, loX), hiX);
       const fwd = s.y + s.h < t.y, y1 = fwd ? s.y + s.h : s.y, y2 = fwd ? t.y : t.y + t.h;
-      if (!hits(x, y1, x, y2, skip)) pts = [{ x, y: y1 }, { x, y: y2 }];
+      if (!hits(x, y1, x, y2, skip) && sidesOk(e, fwd ? 'B' : 'T', fwd ? 'T' : 'B')) pts = [{ x, y: y1 }, { x, y: y2 }];
     }
     // Don't land on a point another connector already uses at either end.
     const clash = (p) => L.edges.some((o) => o !== e && o.points.length && [o.points[0], o.points[o.points.length - 1]].some((q) => Math.hypot(q.x - p.x, q.y - p.y) < 14 * theme.scale));
@@ -342,8 +368,10 @@ function spreadBundles(L, theme) {
 // Lines that share a side of a box can attach in an order that makes them cross right next to the box
 // (libavoid picks each line's pin on its own). Try every order of their attachment points on that side and
 // keep the one with the fewest crossings. Only the first segment moves; it stays perpendicular to the side.
+// Ends with source-order / target-order must also come out in that order (1 = top-most / left-most); an
+// arrangement that breaks it is never chosen, and a broken one is fixed even at the cost of a crossing.
+// On the character grid only the order is fixed (between existing positions); nothing else moves.
 function untangleEnds(L, theme) {
-  if (theme.charMode) return;
   const near = (a, b) => Math.abs(a - b) < 1;
   for (const n of Object.values(L.nodes)) {
     const sides = { L: [], R: [], T: [], B: [] };
@@ -353,7 +381,7 @@ function untangleEnds(L, theme) {
         if ((i === 0 ? e.source : e.target) !== n.id) continue;
         const p = P[i], q = P[j], horiz = near(p.y, q.y);
         const side = horiz ? (near(p.x, n.x) ? 'L' : near(p.x, n.x + n.w) ? 'R' : null) : (near(p.y, n.y) ? 'T' : near(p.y, n.y + n.h) ? 'B' : null);
-        if (side) sides[side].push({ e, i, j, axis: horiz ? 'y' : 'x', at: horiz ? p.y : p.x });
+        if (side) sides[side].push({ e, i, j, axis: horiz ? 'y' : 'x', at: horiz ? p.y : p.x, ord: i === 0 ? e.sourceOrder : e.targetOrder });
       }
     }
     for (const ends of Object.values(sides)) {
@@ -362,7 +390,10 @@ function untangleEnds(L, theme) {
       // Lines sharing a side need room for an arrowhead between them, or a head lands on its neighbour.
       const minGap = theme.edge.arrow * 2.4, axis = ends[0].axis, m = 10 * theme.scale;
       const lo = (axis === 'y' ? n.y : n.x) + m, hi = (axis === 'y' ? n.y + n.h : n.x + n.w) - m, span = minGap * (slots.length - 1);
-      const crowded = slots.some((v, k) => k && v - slots[k - 1] < minGap - 0.5) && hi - lo >= span;
+      const crowded = !theme.charMode && slots.some((v, k) => k && v - slots[k - 1] < minGap - 0.5) && hi - lo >= span;
+      const ordered = (seq) => { const o = seq.map((d) => d.ord).filter((v) => v != null); return o.every((v, k) => !k || o[k - 1] <= v); };
+      const mustFix = !ordered([...ends].sort((a, b) => a.at - b.at));
+      if (theme.charMode && !mustFix) continue;
       if (crowded) {
         const mid = (slots[0] + slots[slots.length - 1]) / 2, start = Math.min(Math.max(mid - span / 2, lo), hi - span);
         slots = slots.map((_, k) => start + k * minGap);
@@ -379,15 +410,16 @@ function untangleEnds(L, theme) {
       const base = countCrossings(L.edges.map((e) => e.points));
       let best = null;
       for (const order of permutations(ends)) {
+        if (!ordered(order)) continue;
         const pts = tryOrder(order);
         const c = countCrossings(L.edges.map((e) => pts.get(e) || original.get(e)));
-        if ((c < base || (crowded && c <= base)) && (!best || c < best.c)) best = { c, pts };
+        if ((mustFix || c < base || (crowded && c <= base)) && (!best || c < best.c)) best = { c, pts };
       }
       if (!best) continue;
       if ([...best.pts].some(([e, P]) => checkEdge(L, theme, e, P).length > checkEdge(L, theme, e).length)) continue;
       for (const [e, P] of best.pts) e.points = P;
       L.stats = { ...(L.stats || {}), untangled: (L.stats?.untangled || 0) + 1 };
-      if (process.env.ARCHDIAG_DEBUG) console.error('[untangle]', n.id, `${base} -> ${best.c} crossings${crowded ? ', spaced' : ''}`);
+      if (process.env.ARCHDIAG_DEBUG) console.error('[untangle]', n.id, `${base} -> ${best.c} crossings${crowded ? ', spaced' : ''}${mustFix ? ', ordered' : ''}`);
     }
   }
 }
