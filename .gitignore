@@ -1,3 +1,6 @@
 node_modules/
 out/
 *.tgz
+
+# Private working notes (kept out of the repo)
+CONTEXT.md

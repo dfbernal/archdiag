@@ -109,11 +109,11 @@ function renderASCII(L, theme, diagram, { mode = 'unicode', title = true } = {})
   for (const g of Object.values(L.groups)) { const bx = boxOf(g); text(bx.c0 + 2, bx.r0, ` ${g.label} `); }
 
   // 4. Arrowheads.
-  for (const { pts } of routes) {
+  const tipAt = (z, y) => put(z.c, z.r, S.arrows[z.c > y.c ? R : z.c < y.c ? Lf : z.r > y.r ? D : U]);
+  for (const { e, pts } of routes) {
     if (pts.length < 2) continue;
-    const z = pts[pts.length - 1], y = pts[pts.length - 2];
-    const d = z.c > y.c ? R : z.c < y.c ? Lf : z.r > y.r ? D : U;
-    put(z.c, z.r, S.arrows[d]);
+    if (e.arrow !== 'back' && e.arrow !== 'none') tipAt(pts[pts.length - 1], pts[pts.length - 2]);
+    if (e.arrow === 'back' || e.arrow === 'both') tipAt(pts[0], pts[1]);
   }
 
   // 5. Labels: inline on the longest free horizontal run, else beside the longest vertical run.

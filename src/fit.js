@@ -17,18 +17,27 @@ function quality(L) {
   let crossings = 0, bends = 0;
   const all = L.edges.map(segs);
   all.forEach((s) => (bends += Math.max(0, s.length - 1)));
+  // Average line length in box widths: long detours through empty space read badly at any size.
+  const boxW = Object.values(L.nodes).reduce((a, n) => a + n.w, 0) / Math.max(1, Object.keys(L.nodes).length);
+  const total = all.flat().reduce((a, [p, q]) => a + Math.abs(p.x - q.x) + Math.abs(p.y - q.y), 0);
+  const lineLen = +(total / Math.max(1, all.length) / boxW).toFixed(2);
   for (let i = 0; i < all.length; i++) for (let j = i + 1; j < all.length; j++)
     for (const p of all[i]) for (const q of all[j]) if (crosses(p, q)) crossings++;
-  return { crossings, bends };
+  return { crossings, bends, lineLen };
 }
 
-async function fitLayout(diagram, theme, { target = 'slide', overrides = {}, chrome = 0 } = {}) {
+// lockRoot: keep the overall direction ('right' | 'down' | ...) instead of trying both.
+// weights: { violations, crossings, bends, length } override the scoring below (per unit; text size counts
+// 1 per px; length = average line length in box widths).
+async function fitLayout(diagram, theme, { target = 'slide', overrides = {}, chrome = 0, lockRoot = null, weights = {} } = {}) {
+  const W8 = { violations: 4, crossings: 1.6, bends: 0.1, length: 1, ...weights };
   const box = target === 'slide' ? { w: 1800, h: 900 } : { w: 1600, h: 100000 }; // 'doc' = fixed width column
   const ids = Object.keys(diagram.groups || {}).filter((g) => !(diagram.groups[g].direction && diagram.groups[g].locked));
   const dirs = ['right', 'down'];
   const combos = [];
   const n = ids.length + 1;
-  for (let m = 0; m < 1 << n; m++) combos.push([dirs[m & 1], ...ids.map((_, i) => dirs[(m >> (i + 1)) & 1])]);
+  for (let m = 0; m < 1 << n; m++) combos.push([lockRoot || dirs[m & 1], ...ids.map((_, i) => dirs[(m >> (i + 1)) & 1])]);
+  if (lockRoot) combos.splice(0, combos.length, ...combos.filter((c, i) => (i & 1) === 0));   // each combo once
   const results = [];
   for (const [root, ...gd] of combos) {
     const d = JSON.parse(JSON.stringify(diagram));
@@ -47,12 +56,12 @@ async function fitLayout(diagram, theme, { target = 'slide', overrides = {}, chr
     const fit = target === 'doc' ? Math.min(1, box.w / W) : Math.min(box.w / W, box.h / H);
     const q = { ...quality(L), violations: checkAll(L, theme).length };
     const px = theme.type.node.size * fit;
-    let score = px - q.violations * 4 - q.crossings * 1.6 - q.bends * 0.1 - (target === 'doc' ? H / 1000 : 0);
+    let score = px - q.violations * W8.violations - q.crossings * W8.crossings - q.bends * W8.bends - q.lineLen * W8.length - (target === 'doc' ? H / 1000 : 0);
     // Legibility floor: below ~14px on a 1080p slide nobody in the room can read it, whatever else is true.
     if (target === 'slide' && px < 14) score -= (14 - px) * 3;
     if (target === 'text') {   // fit a Slack/terminal width first, then cleanliness, then height
       const cols = L.width / theme.charMode.cw, rows = L.height / theme.charMode.ch;
-      score = -Math.max(0, cols - (overrides.maxCols || 100)) * 10 - q.violations * 4 - q.crossings * 3 - q.bends * 0.3 - rows * 0.05;
+      score = -Math.max(0, cols - (overrides.maxCols || 100)) * 10 - q.violations * W8.violations - q.crossings * (weights.crossings ?? 3) - q.bends * (weights.bends ?? 0.3) - rows * 0.05;
     }
     results.push({ root, dirs: Object.fromEntries(ids.map((g, i) => [g, gd[i]])), px: +px.toFixed(1), aspect: +(W / H).toFixed(2), ...q, score, L, d });
   }

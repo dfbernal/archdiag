@@ -16,22 +16,22 @@
 <path d="M1411.8,387.2 L1402.9,369.2 L1420.7,369.2 Z" fill="#4F46E5" stroke="#4F46E5" stroke-width="1.6" stroke-linejoin="round"/>
 <path d="M1200.9,202.2 L1200.9,372.8" fill="none" stroke="#4F46E5" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M1200.9,387.2 L1192,369.2 L1209.8,369.2 Z" fill="#4F46E5" stroke="#4F46E5" stroke-width="1.6" stroke-linejoin="round"/>
-<path d="M1326.4,485.2 L1326.4,568.2 Q1326.4,578.2 1336.4,578.2 L1451.6,578.2 Q1461.6,578.2 1461.6,588.2 L1461.6,656.8" fill="none" stroke="#4F46E5" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M1329,485.2 L1329,568.2 Q1329,578.2 1339,578.2 L1451.6,578.2 Q1461.6,578.2 1461.6,588.2 L1461.6,656.8" fill="none" stroke="#4F46E5" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M1461.6,671.2 L1452.7,653.2 L1470.6,653.2 Z" fill="#4F46E5" stroke="#4F46E5" stroke-width="1.6" stroke-linejoin="round"/>
-<path d="M1694.8,720.2 L1843.6,720.2 Q1853.6,720.2 1853.6,710.2 L1853.6,539.2 Q1853.6,529.2 1863.6,529.2 L2108.6,529.2" fill="none" stroke="#4F46E5" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M2123,529.2 L2105,538.2 L2105,520.3 Z" fill="#4F46E5" stroke="#4F46E5" stroke-width="1.6" stroke-linejoin="round"/>
-<path d="M1284.9,485.2 L1284.9,761.1" fill="none" stroke="#D97706" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="7 5"/>
-<path d="M1284.9,775.5 L1276,757.5 L1293.8,757.5 Z" fill="#D97706" stroke="#D97706" stroke-width="1.6" stroke-linejoin="round"/>
+<path d="M1694.8,720.2 L1869.3,720.2 Q1879.3,720.2 1879.3,710.2 L1879.3,553.3 Q1879.3,543.3 1889.3,543.3 L2108.6,543.3" fill="none" stroke="#4F46E5" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M2123,543.3 L2105,552.2 L2105,534.4 Z" fill="#4F46E5" stroke="#4F46E5" stroke-width="1.6" stroke-linejoin="round"/>
+<path d="M1282.2,485.2 L1282.2,761.1" fill="none" stroke="#D97706" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="7 5"/>
+<path d="M1282.2,775.5 L1273.3,757.5 L1291.1,757.5 Z" fill="#D97706" stroke="#D97706" stroke-width="1.6" stroke-linejoin="round"/>
 <path d="M1185.5,873.5 L1185.5,1044.1" fill="none" stroke="#D97706" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="7 5"/>
 <path d="M1185.5,1058.5 L1176.6,1040.5 L1194.4,1040.5 Z" fill="#D97706" stroke="#D97706" stroke-width="1.6" stroke-linejoin="round"/>
-<path d="M1699.8,436.2 L2003.2,436.2 Q2013.2,436.2 2013.2,446.2 L2013.2,719.2 Q2013.2,729.2 2023.2,729.2 L2152.6,729.2" fill="none" stroke="#059669" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M1699.8,436.2 L1962.9,436.2 Q1972.9,436.2 1972.9,446.2 L1972.9,719.2 Q1972.9,729.2 1982.9,729.2 L2152.6,729.2" fill="none" stroke="#059669" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M2167,729.2 L2149,738.2 L2149,720.3 Z" fill="#059669" stroke="#059669" stroke-width="1.6" stroke-linejoin="round"/>
-<path d="M1375.8,436.2 L1377.3,436.2 Q1378.8,436.2 1378.8,437.7 L1378.8,505.2 Q1378.8,515.2 1388.8,515.2 L1923.4,515.2 Q1933.4,515.2 1933.4,525.2 L1933.4,888.4 Q1933.4,898.4 1943.4,898.4 L2152.6,898.4" fill="none" stroke="#059669" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M1375.8,436.2 L1383.8,436.2 Q1391.8,436.2 1391.8,444.2 L1391.8,505.2 Q1391.8,515.2 1401.8,515.2 L1916.1,515.2 Q1926.1,515.2 1926.1,525.2 L1926.1,888.4 Q1926.1,898.4 1936.1,898.4 L2152.6,898.4" fill="none" stroke="#059669" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M2167,898.4 L2149,907.4 L2149,889.5 Z" fill="#059669" stroke="#059669" stroke-width="1.6" stroke-linejoin="round"/>
-<path d="M1326.8,1076.1 L1945.4,1076.1 Q1955.4,1076.1 1955.4,1066.1 L1955.4,989.1 Q1955.4,979.1 1965.4,979.1 L2152.6,979.1" fill="none" stroke="#059669" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M1326.8,1068.5 L1945.4,1068.5 Q1955.4,1068.5 1955.4,1058.5 L1955.4,989.1 Q1955.4,979.1 1965.4,979.1 L2152.6,979.1" fill="none" stroke="#059669" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
 <path d="M2167,979.1 L2149,988 L2149,970.2 Z" fill="#059669" stroke="#059669" stroke-width="1.6" stroke-linejoin="round"/>
-<path d="M1326.8,1107.7 L2152.6,1107.7" fill="none" stroke="#059669" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
-<path d="M2167,1107.7 L2149,1116.7 L2149,1098.8 Z" fill="#059669" stroke="#059669" stroke-width="1.6" stroke-linejoin="round"/>
+<path d="M1326.8,1115.3 L2152.6,1115.3" fill="none" stroke="#059669" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M2167,1115.3 L2149,1124.2 L2149,1106.4 Z" fill="#059669" stroke="#059669" stroke-width="1.6" stroke-linejoin="round"/>
 <rect x="493.2" y="12" width="82.5" height="46.2" rx="6" fill="#FFF8F1" stroke="#F97316" stroke-opacity="0.25" stroke-width="1"/>
 <text x="501.2" y="35.1" dominant-baseline="central" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="27.2" font-weight="600"  fill="#9A3412" letter-spacing="0.2">Edge</text>
 <rect x="964.8" y="12" width="321.4" height="46.2" rx="6" fill="#F3F7FF" stroke="#3B82F6" stroke-opacity="0.25" stroke-width="1"/>
@@ -92,26 +92,26 @@
 <image href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHZpZXdCb3g9JzAgMCAyNCAyNCc+PHBhdGggZmlsbD0nIzYzNUJGRicgZD0nTTEzLjk3NiA5LjE1Yy0yLjE3Mi0uODA2LTMuMzU2LTEuNDI2LTMuMzU2LTIuNDA5IDAtLjgzMS42ODMtMS4zMDUgMS45MDEtMS4zMDUgMi4yMjcgMCA0LjUxNS44NTggNi4wOSAxLjYzMWwuODktNS40OTRDMTguMjUyLjk3NSAxNS42OTcgMCAxMi4xNjUgMCA5LjY2NyAwIDcuNTg5LjY1NCA2LjEwNCAxLjg3MiA0LjU2IDMuMTQ3IDMuNzU3IDQuOTkyIDMuNzU3IDcuMjE4YzAgNC4wMzkgMi40NjcgNS43NiA2LjQ3NiA3LjIxOSAyLjU4NS45MiAzLjQ0NSAxLjU3NCAzLjQ0NSAyLjU4MyAwIC45OC0uODQgMS41NDUtMi4zNTQgMS41NDUtMS44NzUgMC00Ljk2NS0uOTIxLTYuOTktMi4xMDlsLS45IDUuNTU1QzUuMTc1IDIyLjk5IDguMzg1IDI0IDExLjcxNCAyNGMyLjY0MSAwIDQuODQzLS42MjQgNi4zMjgtMS44MTMgMS42NjQtMS4zMDUgMi41MjUtMy4yMzYgMi41MjUtNS43MzIgMC00LjEyOC0yLjUyNC01Ljg1MS02LjU5NC03LjMwNWguMDAzeicvPjwvc3ZnPg==" x="2145" y="471" width="48" height="48"/>
 <text x="2205" y="479" dominant-baseline="central" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="30.4" font-weight="600"  fill="#0F172A">Stripe</text>
 <text x="2205" y="515.9" dominant-baseline="central" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="22.4" font-weight="400"  fill="#64748B">payments API</text>
-<rect x="302.1" y="132.8" width="101" height="41" rx="6" fill="#FFFFFF" stroke="#4F46E5" stroke-opacity="0.35" stroke-width="1"/>
-<text x="352.6" y="153.3" text-anchor="middle" dominant-baseline="central" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="22.4" font-weight="500"  fill="#3730A3">HTTPS</text>
+<rect x="302" y="132.8" width="101" height="41" rx="6" fill="#FFFFFF" stroke="#4F46E5" stroke-opacity="0.35" stroke-width="1"/>
+<text x="352.5" y="153.3" text-anchor="middle" dominant-baseline="central" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="22.4" font-weight="500"  fill="#3730A3">HTTPS</text>
 <rect x="1339.8" y="274.2" width="144" height="41" rx="6" fill="#FFFFFF" stroke="#4F46E5" stroke-opacity="0.35" stroke-width="1"/>
 <text x="1411.8" y="294.7" text-anchor="middle" dominant-baseline="central" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="22.4" font-weight="500"  fill="#3730A3">verify JWT</text>
 <rect x="1115.4" y="274.2" width="171" height="41" rx="6" fill="#FFFFFF" stroke="#4F46E5" stroke-opacity="0.35" stroke-width="1"/>
 <text x="1200.9" y="294.7" text-anchor="middle" dominant-baseline="central" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="22.4" font-weight="500"  fill="#3730A3">POST /orders</text>
-<rect x="1343.5" y="557.7" width="101" height="41" rx="6" fill="#FFFFFF" stroke="#4F46E5" stroke-opacity="0.35" stroke-width="1"/>
-<text x="1394" y="578.2" text-anchor="middle" dominant-baseline="central" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="22.4" font-weight="500"  fill="#3730A3">charge</text>
-<rect x="1762.6" y="604.2" width="182" height="41" rx="6" fill="#FFFFFF" stroke="#4F46E5" stroke-opacity="0.35" stroke-width="1"/>
-<text x="1853.6" y="624.7" text-anchor="middle" dominant-baseline="central" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="22.4" font-weight="500"  fill="#3730A3">PaymentIntent</text>
-<rect x="1198.4" y="609.9" width="173" height="41" rx="6" fill="#FFFFFF" stroke="#D97706" stroke-opacity="0.35" stroke-width="1"/>
-<text x="1284.9" y="630.4" text-anchor="middle" dominant-baseline="central" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="22.4" font-weight="500"  fill="#92400E">order.created</text>
+<rect x="1345" y="557.7" width="101" height="41" rx="6" fill="#FFFFFF" stroke="#4F46E5" stroke-opacity="0.35" stroke-width="1"/>
+<text x="1395.5" y="578.2" text-anchor="middle" dominant-baseline="central" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="22.4" font-weight="500"  fill="#3730A3">charge</text>
+<rect x="1911.3" y="522.8" width="182" height="41" rx="6" fill="#FFFFFF" stroke="#4F46E5" stroke-opacity="0.35" stroke-width="1"/>
+<text x="2002.3" y="543.3" text-anchor="middle" dominant-baseline="central" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="22.4" font-weight="500"  fill="#3730A3">PaymentIntent</text>
+<rect x="1195.7" y="613.2" width="173" height="41" rx="6" fill="#FFFFFF" stroke="#D97706" stroke-opacity="0.35" stroke-width="1"/>
+<text x="1282.2" y="633.7" text-anchor="middle" dominant-baseline="central" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="22.4" font-weight="500"  fill="#92400E">order.created</text>
 <rect x="1123" y="945.5" width="125" height="41" rx="6" fill="#FFFFFF" stroke="#D97706" stroke-opacity="0.35" stroke-width="1"/>
 <text x="1185.5" y="966" text-anchor="middle" dominant-baseline="central" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="22.4" font-weight="500"  fill="#92400E">consume</text>
-<rect x="1796.5" y="415.7" width="120" height="41" rx="6" fill="#FFFFFF" stroke="#059669" stroke-opacity="0.35" stroke-width="1"/>
-<text x="1856.5" y="436.2" text-anchor="middle" dominant-baseline="central" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="22.4" font-weight="500"  fill="#065F46">sessions</text>
-<rect x="1616.1" y="494.7" width="80" height="41" rx="6" fill="#FFFFFF" stroke="#059669" stroke-opacity="0.35" stroke-width="1"/>
-<text x="1656.1" y="515.2" text-anchor="middle" dominant-baseline="central" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="22.4" font-weight="500"  fill="#065F46">write</text>
-<rect x="1555.1" y="1055.6" width="172" height="41" rx="6" fill="#FFFFFF" stroke="#059669" stroke-opacity="0.35" stroke-width="1"/>
-<text x="1641.1" y="1076.1" text-anchor="middle" dominant-baseline="central" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="22.4" font-weight="500"  fill="#065F46">update status</text>
-<rect x="1815.4" y="1087.2" width="115" height="41" rx="6" fill="#FFFFFF" stroke="#059669" stroke-opacity="0.35" stroke-width="1"/>
-<text x="1872.9" y="1107.7" text-anchor="middle" dominant-baseline="central" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="22.4" font-weight="500"  fill="#065F46">invoices</text>
+<rect x="1779.8" y="415.7" width="120" height="41" rx="6" fill="#FFFFFF" stroke="#059669" stroke-opacity="0.35" stroke-width="1"/>
+<text x="1839.8" y="436.2" text-anchor="middle" dominant-baseline="central" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="22.4" font-weight="500"  fill="#065F46">sessions</text>
+<rect x="1743.8" y="494.7" width="80" height="41" rx="6" fill="#FFFFFF" stroke="#059669" stroke-opacity="0.35" stroke-width="1"/>
+<text x="1783.8" y="515.2" text-anchor="middle" dominant-baseline="central" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="22.4" font-weight="500"  fill="#065F46">write</text>
+<rect x="1750.8" y="1048" width="172" height="41" rx="6" fill="#FFFFFF" stroke="#059669" stroke-opacity="0.35" stroke-width="1"/>
+<text x="1836.8" y="1068.5" text-anchor="middle" dominant-baseline="central" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="22.4" font-weight="500"  fill="#065F46">update status</text>
+<rect x="1934.8" y="1094.8" width="115" height="41" rx="6" fill="#FFFFFF" stroke="#059669" stroke-opacity="0.35" stroke-width="1"/>
+<text x="1992.3" y="1115.3" text-anchor="middle" dominant-baseline="central" font-family="Inter, 'Helvetica Neue', Arial, sans-serif" font-size="22.4" font-weight="500"  fill="#065F46">invoices</text>
 </g></svg>

@@ -50,11 +50,15 @@ function addNode(Av, r, n, withPins, theme) {
   return sh;
 }
 
+// Spacing between parallel lines: at least one label pill's height plus a margin, so two labelled lines that
+// run side by side each have room for their label (with the old 14px, neighbouring labels had to overlap).
+const nudgeOf = (theme, opts) => opts.nudge ?? theme.route?.nudge ??
+  Math.max(14 * theme.scale, theme.type.edgeLabel.size * 1.25 + theme.edge.labelPadY * 2 + 6 * theme.scale);
 const bufferOf = (theme, opts) => opts.buffer ?? theme.route?.buffer ?? 30 * theme.scale;
 function configure(Av, r, theme, opts) {
   const P = Av.RoutingParameter, O = Av.RoutingOption, s = theme.scale;
   r.setRoutingParameter(P.shapeBufferDistance, bufferOf(theme, opts));
-  r.setRoutingParameter(P.idealNudgingDistance, opts.nudge ?? theme.route?.nudge ?? 14 * s);
+  r.setRoutingParameter(P.idealNudgingDistance, nudgeOf(theme, opts));
   r.setRoutingParameter(P.segmentPenalty, opts.segmentPenalty ?? theme.route?.segmentPenalty ?? 60);
   r.setRoutingParameter(P.crossingPenalty, opts.crossingPenalty ?? 400);
   r.setRoutingParameter(P.reverseDirectionPenalty, 400);
@@ -143,6 +147,7 @@ async function routeEdges(L, theme, opts = {}) {
   straighten(L, theme);
   await repair(L, theme, opts);
   if (opts.spread !== false && theme.route?.spread !== false) spreadBundles(L, theme);
+  if (opts.untangle !== false && theme.route?.untangle !== false) untangleEnds(L, theme);
   return L;
 }
 
@@ -154,12 +159,41 @@ async function repair(L, theme, opts) {
     if (!bad.length) continue;
     L.stats = { ...(L.stats || {}), rerouted: (L.stats?.rerouted || 0) + 1 };
     if (process.env.ARCHDIAG_DEBUG) console.error('[repair]', e.source + '->' + e.target, JSON.stringify(bad));
+    // A line hugging its own box usually needs a nudge, not a new route: push the hugging segment away.
+    const nudged = bad.every((v) => v.kind === 'hug') && unhug(L, theme, e, bad.length);
+    if (nudged) { e.points = nudged; continue; }
     for (const buffer of [opts.buffer ?? theme.route?.buffer ?? 30 * theme.scale, 16 * theme.scale]) {
       const pts = await routeOne(L, theme, e, { ...opts, buffer });
       if (pts.length >= 2 && checkEdge(L, theme, e, pts).length < bad.length) { e.points = pts; break; }
     }
   }
   separate(L, theme);
+}
+
+// Move each inner segment that runs along one of the edge's own boxes out to a clear distance. Returns the
+// new points if that fixes every rule break without adding crossings, else null.
+function unhug(L, theme, e, nBad) {
+  const s = theme.scale, P = e.points.map((p) => ({ ...p })), crossBefore = countCrossings(L.edges.map((x) => x.points));
+  for (const id of [e.source, e.target]) {
+    const n = L.nodes[id];
+    for (let i = 1; i + 2 < P.length; i++) {
+      const a = P[i], b = P[i + 1], vert = Math.abs(a.x - b.x) < 0.5;
+      const [c, e0, e1] = vert ? [a.x, n.x, n.x + n.w] : [a.y, n.y, n.y + n.h];
+      const k = vert ? 'x' : 'y', lo = Math.min(a[vert ? 'y' : 'x'], b[vert ? 'y' : 'x']), hi = Math.max(a[vert ? 'y' : 'x'], b[vert ? 'y' : 'x']);
+      const [s0, s1] = vert ? [n.y, n.y + n.h] : [n.x, n.x + n.w];
+      if (Math.min(hi, s1) - Math.max(lo, s0) <= 14 * s) continue;
+      const out = Math.abs(c - e1) < 14 * s ? 1 : Math.abs(c - e0) < 14 * s ? -1 : 0; if (!out) continue;
+      for (const d of [16, 24, 32, 44].map((v) => v * s)) {
+        const target = (out > 0 ? e1 : e0) + out * d, cand = P.map((p) => ({ ...p }));
+        cand[i][k] = target; cand[i + 1][k] = target;
+        if (checkEdge(L, theme, e, cand).filter((v) => !(v.kind === 'hug' && v.id === id)).length > 0) continue;
+        P[i][k] = target; P[i + 1][k] = target; break;
+      }
+    }
+  }
+  if (checkEdge(L, theme, e, P).length) return null;
+  const crossAfter = countCrossings(L.edges.map((x) => (x === e ? P : x.points)));
+  return crossAfter <= crossBefore ? P : null;
 }
 
 // Pull apart collinear overlapping segments that belong to different connectors (private re-routes
@@ -228,7 +262,7 @@ function straighten(L, theme) {
 // endpoint stays on its pin; a change is kept only if no connector breaks more rules than before.
 function spreadBundles(L, theme) {
   if (theme.charMode) return;                       // the character grid has no room for lanes
-  const s = theme.scale, nudge = theme.route?.nudge ?? 14 * s;
+  const s = theme.scale, nudge = nudgeOf(theme, {});
   const near = nudge * 2.5, clear = theme.route?.buffer ?? 30 * s, m = 12 * s;
   const laneMax = theme.route?.laneMax ?? 110 * s;  // widest lane spacing: spread out, not scattered
   for (const a of ['x', 'y']) {                      // a = the coordinate that is constant along the segment
@@ -302,6 +336,58 @@ function spreadBundles(L, theme) {
       for (const [e, P] of best.pts) e.points = P;
       L.stats = { ...(L.stats || {}), spread: (L.stats?.spread || 0) + 1 };
       if (process.env.ARCHDIAG_DEBUG) console.error('[spread]', G.map((g) => g.e.source + '->' + g.e.target).join(', '), `gap ${Math.round(gap)}`);
+    }
+  }
+}
+// Lines that share a side of a box can attach in an order that makes them cross right next to the box
+// (libavoid picks each line's pin on its own). Try every order of their attachment points on that side and
+// keep the one with the fewest crossings. Only the first segment moves; it stays perpendicular to the side.
+function untangleEnds(L, theme) {
+  if (theme.charMode) return;
+  const near = (a, b) => Math.abs(a - b) < 1;
+  for (const n of Object.values(L.nodes)) {
+    const sides = { L: [], R: [], T: [], B: [] };
+    for (const e of L.edges) {
+      const P = e.points; if (P.length < 3) continue;          // a straight line would move its other end too
+      for (const [i, j] of [[0, 1], [P.length - 1, P.length - 2]]) {
+        if ((i === 0 ? e.source : e.target) !== n.id) continue;
+        const p = P[i], q = P[j], horiz = near(p.y, q.y);
+        const side = horiz ? (near(p.x, n.x) ? 'L' : near(p.x, n.x + n.w) ? 'R' : null) : (near(p.y, n.y) ? 'T' : near(p.y, n.y + n.h) ? 'B' : null);
+        if (side) sides[side].push({ e, i, j, axis: horiz ? 'y' : 'x', at: horiz ? p.y : p.x });
+      }
+    }
+    for (const ends of Object.values(sides)) {
+      if (ends.length < 2 || ends.length > 6) continue;
+      let slots = ends.map((d) => d.at).sort((a, b) => a - b);
+      // Lines sharing a side need room for an arrowhead between them, or a head lands on its neighbour.
+      const minGap = theme.edge.arrow * 2.4, axis = ends[0].axis, m = 10 * theme.scale;
+      const lo = (axis === 'y' ? n.y : n.x) + m, hi = (axis === 'y' ? n.y + n.h : n.x + n.w) - m, span = minGap * (slots.length - 1);
+      const crowded = slots.some((v, k) => k && v - slots[k - 1] < minGap - 0.5) && hi - lo >= span;
+      if (crowded) {
+        const mid = (slots[0] + slots[slots.length - 1]) / 2, start = Math.min(Math.max(mid - span / 2, lo), hi - span);
+        slots = slots.map((_, k) => start + k * minGap);
+      }
+      const original = new Map(L.edges.map((e) => [e, e.points]));
+      const tryOrder = (order) => {
+        const pts = new Map();
+        order.forEach((d, k) => {
+          const P = (pts.get(d.e) || d.e.points.map((v) => ({ ...v })));
+          P[d.i][d.axis] = slots[k]; P[d.j][d.axis] = slots[k]; pts.set(d.e, P);
+        });
+        return pts;
+      };
+      const base = countCrossings(L.edges.map((e) => e.points));
+      let best = null;
+      for (const order of permutations(ends)) {
+        const pts = tryOrder(order);
+        const c = countCrossings(L.edges.map((e) => pts.get(e) || original.get(e)));
+        if ((c < base || (crowded && c <= base)) && (!best || c < best.c)) best = { c, pts };
+      }
+      if (!best) continue;
+      if ([...best.pts].some(([e, P]) => checkEdge(L, theme, e, P).length > checkEdge(L, theme, e).length)) continue;
+      for (const [e, P] of best.pts) e.points = P;
+      L.stats = { ...(L.stats || {}), untangled: (L.stats?.untangled || 0) + 1 };
+      if (process.env.ARCHDIAG_DEBUG) console.error('[untangle]', n.id, `${base} -> ${best.c} crossings${crowded ? ', spaced' : ''}`);
     }
   }
 }

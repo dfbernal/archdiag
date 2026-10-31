@@ -1,0 +1,41 @@
+title: Fulfilment Streams (flat)
+subtitle: Kafka Streams tasks, state stores, and topics
+
+# Regression fixture: the same app as examples/fulfilment-streams.yaml, written the way that used to render badly.
+# No lanes, all topics in one zone, and the "consumes" edges pointing from the task to the topic (the real data flow,
+# topic -> task, creates zone-level cycles). The checks must still pass on whatever auto-fit picks.
+
+groups:
+  orders:    { label: Order-based tasks, color: blue }
+  shipments: { label: Shipment-based tasks, color: green }
+  topics:    { label: Kafka topics, color: violet }
+  stores:    { label: State stores, color: amber }
+
+nodes:
+  validate:  { label: Order Validation Task, sub: track order-status, group: orders }
+  totals:    { label: Order Totals Task, sub: apply order-line-delta, group: orders }
+  plan:      { label: Shipment Planning Task, sub: emit shipment-request, group: shipments }
+  shipstate: { label: Shipment State Task, sub: merge into shipment-state, group: shipments }
+  notify:    { label: Notification Task, sub: emit shipment-update, group: shipments }
+
+  ordtopic:  { label: Orders Topic, sub: orders, group: topics, kind: queue, icon: kafka }
+  linetopic: { label: Order Lines Repartition, sub: order-line-delta, group: topics, kind: queue, icon: kafka }
+  reqtopic:  { label: Shipment Requests Repartition, sub: shipment-request, group: topics, kind: queue, icon: kafka }
+  updtopic:  { label: Shipment Updates Topic, sub: shipment-update, group: topics, kind: queue, icon: kafka }
+
+  ststore:   { label: Order Status Store, sub: order-status, group: stores, kind: datastore }
+  totstore:  { label: Order Totals Store, sub: order-totals, group: stores, kind: datastore }
+  shpstore:  { label: Shipment State Store, sub: shipment-state, group: stores, kind: datastore }
+
+edges:
+  - validate -> ordtopic:   { label: consumes order.created, style: async }
+  - validate -> linetopic:  { label: order-line deltas, style: async }
+  - validate -> ststore:    { label: read/write status, style: data }
+  - totals -> linetopic:    { label: consumes grouped lines, style: async }
+  - totals -> totstore:     { label: read/write totals, style: data }
+  - totals -> plan:         { label: current order totals }
+  - plan -> reqtopic:       { label: warehouse-keyed request, style: async }
+  - shipstate -> reqtopic:  { label: consumes grouped requests, style: async }
+  - shipstate -> notify:    { label: current shipment state }
+  - shipstate -> shpstore:  { label: read/write shipment state, style: data }
+  - notify -> updtopic:     { label: shipment-update, style: async }
