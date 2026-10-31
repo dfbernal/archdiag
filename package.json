@@ -1,19 +1,27 @@
 {
   "name": "archdiag",
-  "version": "1.0.0",
+  "version": "0.1.0-beta.0",
   "description": "Architecture diagrams from YAML: clean, hand-placed-looking SVG/PNG and Slack/terminal text",
-  "scripts": {
-    "example": "node src/cli.js examples/checkout.yaml out/checkout --fit doc --type 1.3",
-    "examples": "node src/cli.js examples/checkout.yaml examples/output/checkout-doc --fit doc --type 1.3 --png --png-scale 1 && node src/cli.js examples/checkout.yaml examples/output/checkout-slide --fit slide --type 1.6 --png --png-scale 1 && node src/cli.js examples/checkout.yaml examples/output/checkout-text --ascii unicode --cols 100 && node src/cli.js examples/checkout.yaml examples/output/checkout-ascii --ascii ascii --cols 100 && rm -f examples/output/*.layout.json"
+  "keywords": [
+    "architecture",
+    "diagram",
+    "diagrams-as-code",
+    "yaml",
+    "svg",
+    "elk",
+    "libavoid",
+    "ascii"
+  ],
+  "homepage": "https://github.com/dfbernal/archdiag#readme",
+  "bugs": {
+    "url": "https://github.com/dfbernal/archdiag/issues"
   },
-  "keywords": [],
-  "author": "",
-  "license": "UNLICENSED",
-  "dependencies": {
-    "elkjs": "^0.12.1",
-    "js-yaml": "^5.5.0",
-    "opentype.js": "^2.0.0"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dfbernal/archdiag.git"
   },
+  "license": "MIT",
+  "author": "David Bernal",
   "bin": {
     "archdiag": "src/cli.js"
   },
@@ -24,9 +32,25 @@
     "vendor/",
     "examples/",
     "README.md",
-    "CONTEXT.md",
-    "patches/"
+    "patches/",
+    "THIRD-PARTY-NOTICES.md",
+    "RELEASING.md",
+    "LICENSE"
   ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "example": "node src/cli.js examples/checkout.yaml out/checkout --fit doc --type 1.3",
+    "examples": "node src/cli.js examples/checkout.yaml examples/output/checkout-doc --fit doc --type 1.3 --png --png-scale 1 && node src/cli.js examples/checkout.yaml examples/output/checkout-slide --fit slide --type 1.6 --png --png-scale 1 && node src/cli.js examples/checkout.yaml examples/output/checkout-text --ascii unicode --cols 100 && node src/cli.js examples/checkout.yaml examples/output/checkout-ascii --ascii ascii --cols 100 && node src/cli.js examples/fulfilment-streams.yaml examples/output/fulfilment-streams-doc --fit doc --type 1.3 --png --png-scale 1 && node src/cli.js examples/fulfilment-streams.yaml examples/output/fulfilment-streams-slide --fit slide --type 1.6 --png --png-scale 1 && rm -f examples/output/*.layout.json",
+    "check": "node src/cli.js examples/checkout.yaml /tmp/archdiag-check --fit doc --check && node src/cli.js examples/fulfilment-streams.yaml /tmp/archdiag-check --fit doc --check && node src/cli.js test/fixtures/fulfilment-streams-flat.yaml /tmp/archdiag-check --fit doc --check"
+  },
+  "dependencies": {
+    "@resvg/resvg-js": "^2.6.2",
+    "elkjs": "^0.12.1",
+    "js-yaml": "^5.5.0",
+    "opentype.js": "^2.0.0"
+  },
   "peerDependencies": {
     "playwright": ">=1.40"
   },
@@ -34,8 +58,5 @@
     "playwright": {
       "optional": true
     }
-  },
-  "engines": {
-    "node": ">=18"
   }
 }

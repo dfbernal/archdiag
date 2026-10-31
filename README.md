@@ -1,4 +1,4 @@
-# archdiag (prototype)
+# archdiag (beta)
 
 Architecture diagrams from code, rendered like a hand-placed Lucidchart, with a plain-text version for Slack.
 
@@ -116,23 +116,23 @@ Checkout Platform
              │                 │               │                 │ │
              │                 │               │                 │ │
              │                 │               │                 │ │
-             │                 │               └─── write ───┐┌──┘ │
-             │                 │                             ││    │
-             │                 │                             ││    │
-             │                 │                             ││    │
-             │                 │                             ││    │
-             │                 ▼                             ││    │
-             │  ┌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┐      ┌┈ Data Tier ┈┈┈┈┈┈┈││    │
-             │  ╎     Stripe      ╎      ┊                   ││    │ invoices
-             │  ╎  payments API   ╎      ┊  ╭──────────────╮ ││    │
-             │  └╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┘      ┊  │    Redis     │ ││    │
-             └───────── sessions ──────────▶│   sessions   │ ││    │
-                                         ┊  ╰──────────────╯ ││    │
-                                         ┊                   ││    │
-                                         ┊                   ││    │
-                                         ┊  ╭──────────────╮ ││    │
-                                         ┊  │   Postgres   │◀┘│    │
-                                         ┊  │  primary DB  │◀─┘    │
+             │                 │               └─── write ───┐  ┌┘ │
+             │                 │                             │  │  │
+             │                 │                             │  │  │
+             │                 │                             │  │  │
+             │                 │                             │  │  │
+             │                 ▼                             │  │  │
+             │  ┌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┐      ┌┈ Data Tier ┈┈┈┈┈┈┈│┐ │  │
+             │  ╎     Stripe      ╎      ┊                   │┊ │  │ invoices
+             │  ╎  payments API   ╎      ┊  ╭──────────────╮ │┊ │  │
+             │  └╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌╌┘      ┊  │    Redis     │ │┊ │  │
+             └───────── sessions ──────────▶│   sessions   │ │┊ │  │
+                                         ┊  ╰──────────────╯ │┊ │  │
+                                         ┊                   │┊ │  │
+                                         ┊                   │┊ │  │
+                                         ┊  ╭──────────────╮ │┊ │  │
+                                         ┊  │   Postgres   │◀┘┊ │  │
+                                         ┊  │  primary DB  │◀───┘  │
                                          ┊  ╰──────────────╯  ┊    │
                                          ┊                    ┊    │
                                          ┊                    ┊    │
@@ -144,6 +144,17 @@ Checkout Platform
 
 </details>
 
+### A Kafka Streams app: lanes and real data direction
+
+[`examples/fulfilment-streams.yaml`](examples/fulfilment-streams.yaml) zooms into the checkout platform's fulfilment
+workers: the app on the left, the topics and state stores it uses on the right (`lane`), topics flowing into the tasks
+that consume them, and state stores read and written (`<->`). Doc layout:
+
+![Fulfilment Streams, two columns](examples/output/fulfilment-streams-doc.png)
+
+The slide version is [`fulfilment-streams-slide.png`](examples/output/fulfilment-streams-slide.png). There's no text
+version yet: two columns don't fit 100 characters, and the stacked version isn't readable.
+
 To regenerate all of them (`npm run examples` does the same):
 
 ```bash
@@ -151,6 +162,8 @@ node src/cli.js examples/checkout.yaml examples/output/checkout-doc   --fit doc 
 node src/cli.js examples/checkout.yaml examples/output/checkout-slide --fit slide --type 1.6 --png --png-scale 1
 node src/cli.js examples/checkout.yaml examples/output/checkout-text  --ascii unicode --cols 100
 node src/cli.js examples/checkout.yaml examples/output/checkout-ascii --ascii ascii   --cols 100
+node src/cli.js examples/fulfilment-streams.yaml examples/output/fulfilment-streams-doc   --fit doc   --type 1.3 --png --png-scale 1
+node src/cli.js examples/fulfilment-streams.yaml examples/output/fulfilment-streams-slide --fit slide --type 1.6 --png --png-scale 1
 ```
 
 ## Why it looks cleaner than D2 / Mermaid
@@ -197,19 +210,36 @@ rule breaks, so problems are reported, not discovered by eye.
 
 ## Use it in your project
 
+archdiag is in beta (`0.1.0-beta.0`). Once it's on npm, install it with `npm install -D archdiag@beta`. Until
+then, install it as a dev dependency from GitHub:
+
 ```bash
-# Once: install archdiag as a dev dependency, whichever way suits you
-npm install -D github:<you>/archdiag          # from your Git repo (add #tag to pin a version)
-npm install -D ../archdiag                    # from a local folder (run npm install in that folder once)
-npm install -g github:<you>/archdiag          # or as a global `archdiag` command
-# Optional, for --png: headless Chromium
-npm install -D playwright && npx playwright install chromium
+npm install -D github:dfbernal/archdiag#v0.1.0-beta.0      # from GitHub (needs git; see below)
+npm install -D https://github.com/dfbernal/archdiag/releases/download/v0.1.0-beta.0/archdiag-0.1.0-beta.0.tgz
+                                                           # from the release tarball (no git needed)
+npm install -D ../archdiag                                 # from a local checkout (run npm install there once)
 
 # Describe your system in YAML (format below), then render:
 npx archdiag docs/architecture.yaml docs/architecture --fit doc --type 1.3 --png   # README image (SVG + PNG)
 npx archdiag docs/architecture.yaml docs/arch-slide --fit slide --type 1.6 --png   # 16:9 slide
 npx archdiag docs/architecture.yaml docs/architecture --ascii unicode --cols 100   # Slack / terminal text
 ```
+
+Everything archdiag needs comes from the npm registry: six packages, about 23 MB installed. PNGs are
+rendered with [resvg](https://github.com/linebender/resvg), whose native binary is itself an npm package for
+your platform, so there's no browser to download. `--png-engine chromium` still renders through Playwright if you
+prefer (`npm install -D playwright && npx playwright install chromium`).
+
+### Installing behind a corporate network
+
+- **Use the release tarball, not `github:`.** npm installs `github:` URLs by running `git`, which ignores npm's
+  proxy and registry settings. The tarball URL is a plain HTTPS download that goes through npm's own proxy settings.
+  If you must use git, give git the proxy too: `git config --global http.proxy http://proxy.example.com:8080`.
+- **The dependencies come from your registry mirror** (Artifactory, Nexus, ...) like any other package, including
+  resvg's platform binary (`@resvg/resvg-js-<platform>`). If your mirror blocks that one, PNG output fails with a
+  clear error; SVG and text output still work, or use `--png-engine chromium`.
+- **TLS-inspecting proxies:** if npm fails with certificate errors, point it at your company's CA:
+  `npm config set cafile /path/to/corp-ca.pem` (and `NODE_EXTRA_CA_CERTS=/path/to/corp-ca.pem` for Node itself).
 
 - Needs Node 18+. Outputs: `<prefix>.svg`, `<prefix>.png` (with `--png`, 2× by default, `--png-scale 1`),
   `<prefix>.txt` (text mode) and `<prefix>.layout.json` (positions, for debugging).
@@ -263,13 +293,83 @@ edges:
 
 Colours: blue, orange, amber, green, violet, slate. Icons: any SVG in `icons/` by file name.
 
-## Known limitations (prototype)
+### Edges
+
+```yaml
+edges:
+  - topic -> task: { label: consumes }      # arrow at the target; data flows source -> target
+  - task -> topic: { label: produces }
+  - task <-> store: { label: read/write }   # arrowheads at both ends
+  - a -- b: { label: related }              # no arrowheads
+  - a -> b: { arrow: back }                 # forward | back | both | none: changes the drawing only
+```
+
+Write edges the way the data actually moves. The layout follows `source -> target`; `arrow:` and the
+`<->` / `--` forms only change how the line is drawn.
+
+### Lanes: fixing where zones go
+
+`lane: N` on a zone (or a box) pins it to the Nth band along its container's flow: with the diagram
+flowing left to right, lane 1 is the left column, lane 2 the next, and so on. Zones in the same lane stack.
+Edges may run backwards between lanes (a task in lane 1 consuming a topic in lane 2); they leave and enter on
+the sides that face each other.
+
+```yaml
+groups:
+  app:    { label: Kafka Streams app, lane: 1 }
+  topics: { label: Kafka topics, lane: 2 }
+  stores: { label: State stores, lane: 2 }
+```
+
+### Render options
+
+Put the options you'd pass on the command line in a `render:` block; command-line flags override them.
+
+```yaml
+render:
+  direction: right   # lock the overall direction (auto-fit then only varies the zones' directions)
+  fit: doc           # doc | slide
+  type: 1.3          # text size multiplier
+  png: true          # also write a PNG
+  pngScale: 2
+  pngEngine: resvg   # resvg (default) | chromium
+  weights: { crossings: 1.6, bends: 0.1, length: 1, violations: 4 }   # auto-fit scoring, per unit
+```
+
+Auto-fit scores each candidate: on-screen text size (1 point per px) minus crossings, bends, average line
+length (in box widths) and rule breaks, each times its weight.
+
+### Labels
+
+A label sits on its own line, in this order of preference: never on a box, a zone title, another label or an
+arrowhead; then avoid a zone's edge most; then avoid sitting inside a zone the line only passes through; then
+avoid covering other lines. Among what's left, the middle of a long horizontal run wins. Labels with the fewest
+good spots are placed first. Parallel lines are spaced at least one label's height apart so each has room.
+
+### Checking in CI
+
+`--check` prints one JSON object (`ok`, `violations`, `crossings`, `bends`, size) and exits with code 1 if any
+rule is broken. Rules: a line may not touch any box but its own two, run along its own boxes' edges, enter a
+zone it has nothing to do with, run along its own zone's border, or cross a zone title. The canvas always
+grows to include every line and label, so nothing is clipped.
+
+## Known limitations (beta)
+
+- Text output for two-column (lane) diagrams: side by side is too wide for Slack, and stacked is hard to read.
+- In a stacked column of boxes, a line can still squeeze through the narrow gap between two boxes to reach the
+  one it targets; no rule flags that yet.
 
 - Zones are obstacles. `--zones cluster` uses libavoid's real `ClusterRef` (patched build in `vendor/`), but its
   clusters are a crossing penalty, not clearance, so it's slower and wasn't better here. Either way a line
   can still run ~10px outside a zone edge on its way in (the checker only flags < 8px).
 - libavoid-js is a patched local build (`vendor/libavoid-js/`): ClusterRef bindings plus a libavoid fix that makes
-  pin costs apply at the target end of a connector. See CONTEXT.md §5.
+  pin costs apply at the target end of a connector. See `vendor/libavoid-js/PATCHED.md`.
 - Dense diagrams (12+ nodes with sub-labels) land around 16px on a slide; split the diagram or drop sub-labels for talks.
 - Text mode can leave long vertical runs; a compaction pass would tighten it.
 - No interactive editing yet. The natural next step is a React Flow canvas where dragging a box writes a position hint back into the YAML.
+
+## Licence and releases
+
+archdiag is released under the [MIT licence](LICENSE). It bundles a patched libavoid (LGPL-2.1-or-later) and the
+Inter font (SIL OFL 1.1), which keep their own licences: see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).
+How releases are published to npm: [RELEASING.md](RELEASING.md).

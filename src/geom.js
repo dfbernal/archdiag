@@ -55,6 +55,20 @@ function checkEdge(L, theme, e, pts = e.points) {
     if (n.id === e.source || n.id === e.target) continue;
     if (segs.some(([a, b]) => segHitsRect(a, b, inflate(n, m)))) out.push({ kind: 'node', id: n.id });
   }
+  // Its own two boxes: only the segment that attaches may touch; nothing may run along their edges.
+  const mh = 14 * s;   // a line closer than this to its own box's edge reads as hugging it
+  for (const [id, attached] of [[e.source, 0], [e.target, segs.length - 1]]) {
+    const n = L.nodes[id]; if (!n) continue;
+    const hug = segs.some(([a, b], i) => {
+      if (i === attached) return false;
+      const vert = Math.abs(a.x - b.x) < 0.5, horiz = Math.abs(a.y - b.y) < 0.5; if (!vert && !horiz) return false;
+      const [c, lo, hi] = vert ? [a.x, Math.min(a.y, b.y), Math.max(a.y, b.y)] : [a.y, Math.min(a.x, b.x), Math.max(a.x, b.x)];
+      const [e0, e1, s0, s1] = vert ? [n.x, n.x + n.w, n.y, n.y + n.h] : [n.y, n.y + n.h, n.x, n.x + n.w];
+      const overlap = Math.min(hi, s1) - Math.max(lo, s0);
+      return overlap > mh && (Math.abs(c - e0) < mh || Math.abs(c - e1) < mh);
+    });
+    if (hug) out.push({ kind: 'hug', id });
+  }
   for (const g of Object.values(L.groups)) {
     if (segs.some(([a, b]) => segHitsRect(a, b, inflate(titleStrip(g, theme), 2 * s)))) out.push({ kind: 'title', id: g.id });
     if (!mine.has(g.id)) {
@@ -72,6 +86,24 @@ function checkEdge(L, theme, e, pts = e.points) {
   }
   return out;
 }
+// Everything that gets drawn: boxes, zones, every line and every label. The canvas must contain all of it.
+function extent(L) {
+  const xs = [], ys = [];
+  const add = (r) => { xs.push(r.x, r.x + (r.w || 0)); ys.push(r.y, r.y + (r.h || 0)); };
+  Object.values(L.nodes).forEach(add); Object.values(L.groups).forEach(add);
+  for (const e of L.edges) { (e.points || []).forEach(add); if (e.labelBox) add(e.labelBox); }
+  return { x0: Math.min(...xs), y0: Math.min(...ys), x1: Math.max(...xs), y1: Math.max(...ys) };
+}
+// Shift the drawing so it starts at 0,0 and size the canvas to its full extent (lines and labels included).
+function fitCanvas(L) {
+  const { x0, y0, x1, y1 } = extent(L), dx = -x0, dy = -y0;
+  if (dx || dy) {
+    for (const r of [...Object.values(L.nodes), ...Object.values(L.groups)]) { r.x += dx; r.y += dy; }
+    for (const e of L.edges) { (e.points || []).forEach((p) => { p.x += dx; p.y += dy; }); if (e.labelBox) { e.labelBox.x += dx; e.labelBox.y += dy; } }
+  }
+  L.width = x1 - x0; L.height = y1 - y0;
+  return L;
+}
 function checkAll(L, theme) { return L.edges.flatMap((e) => checkEdge(L, theme, e).map((v) => ({ ...v, edge: `${e.source}->${e.target}` }))); }
 
-module.exports = { titleRow, titleRect, titleStrip, checkEdge, checkAll, segHitsRect, inflate, ancestorsOf };
+module.exports = { titleRow, titleRect, titleStrip, extent, fitCanvas, checkEdge, checkAll, segHitsRect, inflate, ancestorsOf };

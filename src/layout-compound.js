@@ -47,6 +47,17 @@ async function layoutCompound(diagram, theme, overrides = {}) {
   // The child of container cid that contains node id (or null if id is outside cid).
   const liftTo = (id, cid) => { let cur = id; while (cur && parentOf(cur) !== cid) { const p = parentOf(cur); if (p === 'root') return null; cur = p; } return cur; };
 
+  // Lanes: `lane: N` on a zone or box pins it to the Nth band along its container's flow (1 = first).
+  // An edge from a later lane to an earlier one is "backward" (e.g. a task consuming a topic that sits
+  // to its right): it still counts for layout, but leaves and enters on the sides facing each other.
+  const laneOf = (id) => (groups[id] ? groups[id].lane : nodes[id]?.lane);
+  const OPPOSITE = { RIGHT: 'LEFT', LEFT: 'RIGHT', DOWN: 'UP', UP: 'DOWN' };
+  const backwardAt = (e, cid) => {
+    const s = liftTo(e.source, cid), t = liftTo(e.target, cid);
+    return !!(s && t && s !== t && laneOf(s) != null && laneOf(t) != null && laneOf(s) > laneOf(t));
+  };
+  const isBackward = (e) => ['root', ...Object.keys(groups)].some((cid) => backwardAt(e, cid));
+
   const local = {}; // container id -> { w, h, pos: {childId: {x,y}} }
   async function lay(cid) {
     const kids = childrenOf(cid);
@@ -63,9 +74,10 @@ async function layoutCompound(diagram, theme, overrides = {}) {
       const pdir = dirOf(parentOf(cid)), horiz = (d) => d === 'RIGHT' || d === 'LEFT';
       if (horiz(pdir) !== horiz(dir)) {
         const sign = pdir === 'RIGHT' || pdir === 'DOWN' ? 1 : -1;
+        // (A backward edge's outside end is ahead, on the exit side, whichever end is the source.)
         const score = (k) => edges.reduce((a, e) => {
-          const s = liftTo(e.source, cid), t = liftTo(e.target, cid);
-          return a + (s === k && !t ? 1 : 0) - (t === k && !s ? 1 : 0);
+          const s = liftTo(e.source, cid), t = liftTo(e.target, cid), f = isBackward(e) ? -1 : 1;
+          return a + f * ((s === k && !t ? 1 : 0) - (t === k && !s ? 1 : 0));
         }, 0);
         // Only the direction counts, not how many links. A child zone is a wall for its neighbours'
         // lines, so on the exit side plain boxes go beyond zones, and on the entry side before them.
@@ -89,8 +101,8 @@ async function layoutCompound(diagram, theme, overrides = {}) {
     const usePorts = opts.ports ?? !theme.charMode;
     const SIDES = { RIGHT: ['EAST', 'WEST'], LEFT: ['WEST', 'EAST'], DOWN: ['SOUTH', 'NORTH'], UP: ['NORTH', 'SOUTH'] }[dir];
     const ports = {}; // child group id -> { portId: port }
-    const portFor = (k, inner, role) => {
-      const side = role === 'out' ? SIDES[0] : SIDES[1], id = `${k}::${role}::${inner}`;
+    const portFor = (k, inner, role, back = false) => {
+      const side = (role === 'out') !== back ? SIDES[0] : SIDES[1], id = `${k}::${side}::${inner}`;
       if (ports[k]?.[id]) return id;
       let x = nodes[inner].w / 2, y = nodes[inner].h / 2, cur = inner;
       while (cur !== k) { const p = parentOf(cur), at = local[p].pos[cur]; x += at.x; y += at.y; cur = p; }
@@ -104,10 +116,11 @@ async function layoutCompound(diagram, theme, overrides = {}) {
       const s = liftTo(e.source, cid), t = liftTo(e.target, cid);
       if (!s || !t || s === t) continue;
       e.flow = e.flow || null;
-      if (s === e.source && t === e.target) e.flow = dir;          // edge lives at this level
-      else if (!e.flow || e.flowDepth === undefined || depthOf(cid) > e.flowDepth) { e.flow = dir; e.flowDepth = depthOf(cid); }
-      const src = usePorts && groups[s] ? portFor(s, e.source, 'out') : s;
-      const tgt = usePorts && groups[t] ? portFor(t, e.target, 'in') : t;
+      const back = backwardAt(e, cid), fdir = back ? OPPOSITE[dir] : dir;
+      if (s === e.source && t === e.target) e.flow = fdir;          // edge lives at this level
+      else if (!e.flow || e.flowDepth === undefined || depthOf(cid) > e.flowDepth) { e.flow = fdir; e.flowDepth = depthOf(cid); }
+      const src = usePorts && groups[s] ? portFor(s, e.source, 'out', back) : s;
+      const tgt = usePorts && groups[t] ? portFor(t, e.target, 'in', back) : t;
       const key = src + '>' + tgt; if (seen.has(key)) continue; seen.add(key);
       const le = { id: `${cid}_${lifted.length}`, sources: [src], targets: [tgt] };
       if (e.label) {
@@ -118,6 +131,7 @@ async function layoutCompound(diagram, theme, overrides = {}) {
       lifted.push(le);
     }
     const pad = isRoot ? { t: 0, l: 0, b: 0, r: 0 } : { t: titleRow(theme).padTop, l: G.padX, b: G.padBottom, r: G.padX };
+    const laned = kids.some((k) => laneOf(k) != null);
     const graph = {
       id: cid,
       layoutOptions: {
@@ -133,15 +147,19 @@ async function layoutCompound(diagram, theme, overrides = {}) {
         'elk.edgeLabels.placement': 'CENTER',
         'elk.spacing.edgeLabel': String(sp.edgeLabel),
         ...(forceOrder ? { 'elk.layered.crossingMinimization.forceNodeModelOrder': 'true' } : {}),
+        ...(laned ? { 'elk.partitioning.activate': 'true' } : {}),
         ...(opts.elk || {}),
         ...((isRoot ? opts.rootElk : groups[cid].elk) || {}),
       },
       children: kids.map((k) => ({ id: k, width: size(k).w, height: size(k).h,
-        ...(ports[k] ? { ports: Object.values(ports[k]), layoutOptions: { 'elk.portConstraints': 'FIXED_POS' } } : {}) })),
+        ...(ports[k] ? { ports: Object.values(ports[k]) } : {}),
+        layoutOptions: { ...(ports[k] ? { 'elk.portConstraints': 'FIXED_POS' } : {}),
+          ...(laned ? { 'elk.partitioning.partition': String(laneOf(k) ?? 0) } : {}) } })),
       edges: lifted,
     };
     if (!lifted.length && kids.length > 1) {
       // No internal edges: ELK would just pack the boxes, ignoring direction. Line them up ourselves.
+      if (laned) kids.sort((a, b) => (laneOf(a) ?? 0) - (laneOf(b) ?? 0));   // stable: lanes first, then declaration order
       const gap = isRoot ? sp.betweenLayers : sp.nodeNode * 1.2, row = dir === 'RIGHT' || dir === 'LEFT';
       let cur = row ? pad.l : pad.t; const pos = {};
       const cross = Math.max(...kids.map((k) => (row ? size(k).h : size(k).w)));

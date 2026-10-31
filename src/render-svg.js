@@ -76,15 +76,20 @@ function renderSVG(L, theme, diagram, { iconDir, showTitle = true } = {}) {
   const labels = [];
   for (const e of L.edges) {
     const st = T.edgeStyles[e.style] || T.edgeStyles.request;
-    const pts = simplify(e.points);
-    // Pull the line back so the arrowhead tip lands exactly on the border.
-    const a = pts[pts.length - 2], b = pts[pts.length - 1];
-    const len = Math.hypot(b.x - a.x, b.y - a.y) || 1, ux = (b.x - a.x) / len, uy = (b.y - a.y) / len;
-    const tip = { x: b.x, y: b.y }, al = E.arrow * 1.25;
-    const line = [...pts.slice(0, -1), { x: b.x - ux * al * 0.8, y: b.y - uy * al * 0.8 }];
-    out.push(`<path d="${roundedPath(line, E.radius)}" fill="none" stroke="${st.color}" stroke-width="${E.width}" stroke-linecap="round" stroke-linejoin="round"${st.dash ? ` stroke-dasharray="${st.dash}"` : ''}/>`);
-    const bx = tip.x - ux * al, by = tip.y - uy * al, px = -uy * E.arrow * 0.62, py = ux * E.arrow * 0.62;
-    out.push(`<path d="M${r1(tip.x)},${r1(tip.y)} L${r1(bx + px)},${r1(by + py)} L${r1(bx - px)},${r1(by - py)} Z" fill="${st.color}" stroke="${st.color}" stroke-width="${r1(E.width * 0.5)}" stroke-linejoin="round"/>`);
+    const pts = simplify(e.points), al = E.arrow * 1.25;
+    const atEnd = e.arrow !== 'back' && e.arrow !== 'none', atStart = e.arrow === 'back' || e.arrow === 'both';
+    // Pull the line back at each arrowhead so its tip lands exactly on the border.
+    const head = (b, a) => {
+      const len = Math.hypot(b.x - a.x, b.y - a.y) || 1, ux = (b.x - a.x) / len, uy = (b.y - a.y) / len;
+      const bx = b.x - ux * al, by = b.y - uy * al, px = -uy * E.arrow * 0.62, py = ux * E.arrow * 0.62;
+      out.push(`<path d="M${r1(b.x)},${r1(b.y)} L${r1(bx + px)},${r1(by + py)} L${r1(bx - px)},${r1(by - py)} Z" fill="${st.color}" stroke="${st.color}" stroke-width="${r1(E.width * 0.5)}" stroke-linejoin="round"/>`);
+      return { x: b.x - ux * al * 0.8, y: b.y - uy * al * 0.8 };
+    };
+    const line = pts.map((p) => ({ ...p })), n = line.length;
+    out.push(''); const slot = out.length - 1;   // the line goes under its arrowheads
+    if (atEnd) line[n - 1] = head(pts[n - 1], pts[n - 2]);
+    if (atStart) line[0] = head(pts[0], pts[1]);
+    out[slot] = `<path d="${roundedPath(line, E.radius)}" fill="none" stroke="${st.color}" stroke-width="${E.width}" stroke-linecap="round" stroke-linejoin="round"${st.dash ? ` stroke-dasharray="${st.dash}"` : ''}/>`;
     if (e.labelBox) labels.push({ e, st, pts });
   }
 

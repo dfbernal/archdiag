@@ -9,9 +9,15 @@ function parseEdges(list) {
   return (list || []).map((item, i) => {
     let spec = item, opts = {};
     if (typeof item === 'object') { spec = Object.keys(item)[0]; opts = item[spec] || {}; }
-    const m = String(spec).match(/^\s*([\w.-]+)\s*->\s*([\w.-]+)\s*$/);
-    if (!m) throw new Error(`Bad edge: ${spec}`);
-    return { id: `e${i}`, source: m[1], target: m[2], label: opts.label, style: opts.style || 'request' };
+    // a -> b (arrow at b), a <-> b (both ends), a -- b (no arrowheads), a <- b (same as b -> a).
+    // The data flows source -> target for layout; `arrow:` (forward | back | both | none) only changes the drawing.
+    const m = String(spec).match(/^\s*([\w.-]+)\s*(<->|->|<-|--)\s*([\w.-]+)\s*$/);
+    if (!m) throw new Error(`Bad edge: ${spec} (use a -> b, a <-> b, a -- b or a <- b)`);
+    const [, a, op, b] = m;
+    const [source, target] = op === '<-' ? [b, a] : [a, b];
+    const arrow = opts.arrow || { '<->': 'both', '--': 'none' }[op] || 'forward';
+    if (!['forward', 'back', 'both', 'none'].includes(arrow)) throw new Error(`Bad arrow '${arrow}' on ${spec}`);
+    return { id: `e${i}`, source, target, label: opts.label, style: opts.style || 'request', arrow };
   });
 }
 
